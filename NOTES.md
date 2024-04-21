@@ -8,6 +8,7 @@
 - change title in hyperref and title page
 - make title page (univie template?)
 - turn off colorlinks
+- definition/theorem package?
 
 ## Questions
 
@@ -32,6 +33,7 @@
 ### Abstract
 
 - [] write last with introduction
+- [] at least 500 words in GERMAN!!!
 
 ### Introduction
 
