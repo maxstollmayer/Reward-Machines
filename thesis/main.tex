@@ -1,0 +1,132 @@
+\documentclass[11pt, a4paper, titlepage]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+
+% \usepackage[activate={true,nocompatibility},final,tracking=true,kerning=true,spacing=true,factor=1100,stretch=10,shrink=10]{microtype}
+% \microtypecontext{activate={true,nocompatibility},final,tracking=true,kerning=true,spacing=true,factor=1100,stretch=10,shrink=10}
+% activate={true,nocompatibility} - activate protrusion and expansion
+% final - enable microtype; use "draft" to disable
+% tracking=true, kerning=true, spacing=true - activate these techniques
+% factor=1100 - add 10% to the protrusion amount (default is 1000)
+% stretch=10, shrink=10 - reduce stretchability/shrinkability (default is 20/20)
+
+\usepackage{graphicx}
+\graphicspath{{./graphics/}}
+\usepackage{geometry}
+\usepackage{parskip}
+\usepackage{subcaption}
+\usepackage{float}
+
+\usepackage[backend=biber, sorting=ynt]{biblatex}
+\addbibresource{sources.bib}
+
+\usepackage{booktabs}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=false,
+    pdfencoding=unicode,
+    % TODO: change title
+    pdftitle={The Lorenz System},
+    pdfauthor={Maximilian Stollmayer},
+    pdfpagemode=FullScreen
+}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{dsfont}
+
+% \usepackage{siunitx}
+% \sisetup{load-configurations = abbreviations}
+
+\usepackage{array}
+\newcolumntype{L}{>{\(}l<{\)}}
+
+% \usepackage{minted}
+\usepackage{csquotes}
+
+
+% \DeclareMathOperator{\tr}{tr}
+% \DeclareMathOperator{\rg}{rg}
+% \DeclareMathOperator*{\argmin}{arg\,min}
+% \DeclareMathOperator*{\argmax}{arg\,max}
+% \DeclareMathOperator{\sgn}{sgn}
+% \DeclareMathOperator{\Div}{div}
+
+% \newcommand{\N}{\mathbb{N}}
+% \newcommand{\Z}{\mathbb{Z}}
+% \newcommand{\R}{\mathbb{R}}
+% \renewcommand{\C}{\mathbb{C}}
+% \renewcommand{\d}{\textup{d}}
+% \renewcommand{\O}{\mathcal{O}}
+% \renewcommand{\epsilon}{\varepsilon}
+% \renewcommand{\phi}{\varphi}
+% \newcommand{\defeq}{\mathrel{\mathop:}=}
+% \newcommand{\cart}{\!\times\!}
+
+% \renewcommand{\bold}{\mathbf}
+% \newcommand{\bv}{\bold{v}}
+% \newcommand{\bff}{\bold{f}}
+% \newcommand{\bF}{\bold{F}}
+% \newcommand{\bx}{\bold{x}}
+
+% \newcommand{\il}[1]{\( #1 \)}
+% \newcommand{\norm}[1]{\left \| #1 \right \|}
+% \newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+% \newcommand{\matr}[1]{\left( \begin{smallmatrix} #1 \end{smallmatrix} \right)}
+% \newcommand{\Matr}[1]{ \begin{pmatrix} #1 \end{pmatrix}}
+% \newcommand{\partd}[2][]{\frac{\partial #1}{\partial #2}}
+% \newcommand{\bra}[1]{\left( #1 \right)}
+% \newcommand{\vect}[3]{\left(#1,\, #2,\, #3 \right)}
+
+
+
+\begin{document}
+
+\pagenumbering{roman} % roman numerals for title, abstract and TOC
+
+\input{title}
+
+\newpage
+
+\input{abstract}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\pagenumbering{arabic} % arabic numerals for normal pages
+
+\input{introduction}
+
+\newpage
+
+\input{chapter1}
+
+\newpage
+
+\input{chapter2}
+
+\newpage
+
+\input{chapter3}
+
+\newpage
+
+\input{conclusion}
+
+\newpage
+
+\input{appendix}
+
+\newpage
+
+\printbibliography[heading=bibintoc]
+
+\end{document}
