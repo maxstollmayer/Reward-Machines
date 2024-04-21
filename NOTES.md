@@ -2,6 +2,9 @@
 
 ## Todos
 
+- run q learning on a predefined gym environment
+- make plot out of log
+- implement reward machine
 - send professor little bits to read and discuss
 - ? upload all pdfs to grok for querying
 - program a simple reward machine
@@ -9,6 +12,7 @@
 - make title page (univie template?)
 - turn off colorlinks
 - definition/theorem package?
+- idea of the thesis is not to replicate a reward machine paper but to be of an educational resource to other mathematics master students so that they could get the idea of a reward machine and see how it is motivated without being from the field of RL or logic, i.e. be more explanatory than the papers quick rl and logic recaps and do some proofs to get them familiar with the style of reasoning, tedious calculations could be put into appendix for reference but overall proof sketches should be in the main body
 
 ## Questions
 
@@ -38,6 +42,7 @@
 ### Introduction
 
 - [] write last with abstract
+- [] put RL framework graph here instead? (or better no graphics in introduction?)
 
 ### Background on Formal Languages (15-20p)
 
@@ -51,9 +56,11 @@
 
 - [] write this first
 - [] include RL framework graph with agent and environment
+- [] include example of a typical RL task
 - [] MDP
 - [] policy
 - [] q function
+- [] Bellman equations
 - [] (off-policy) (tabular) q learning
 - [] proofs of standard dynamic programming solutions
 - [] dqn
