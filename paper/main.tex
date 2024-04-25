@@ -40,13 +40,15 @@
 \usepackage{amssymb}
 \usepackage{dsfont}
 
+\usepackage{xcolor}
+
 % \usepackage{siunitx}
 % \sisetup{load-configurations = abbreviations}
 
 % \usepackage{array}
 % \newcolumntype{L}{>{\(}l<{\)}}
 
-% \usepackage{minted}
+% \usepackage{minted} % for code highlighting
 
 
 % \DeclareMathOperator{\tr}{tr}
@@ -81,6 +83,8 @@
 % \newcommand{\partd}[2][]{\frac{\partial #1}{\partial #2}}
 % \newcommand{\bra}[1]{\left( #1 \right)}
 % \newcommand{\vect}[3]{\left(#1,\, #2,\, #3 \right)}
+
+\newenvironment{notes}{\begin{quote}\color{gray}}{\end{quote}}
 
 
 \begin{document}
@@ -117,10 +121,10 @@
 
 \newpage
 
-\input{appendix}
+\printbibliography[heading=bibintoc]
 
 \newpage
 
-\printbibliography[heading=bibintoc]
+\input{appendix}
 
 \end{document}
