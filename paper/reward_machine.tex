@@ -1,0 +1,51 @@
+\section{Reward Machines}
+
+\begin{notes}
+    (15-20 pages)
+
+    papers:
+    \begin{itemize}
+        \item original reward machine paper from 2018 \cite{RM2018}
+        \item connection to LTL from 2019 \cite{LTL2019}
+        \item newer reward machine paper from 2022 \cite{RM2022}
+    \end{itemize}
+
+    include updated RL framework graph to better differentiate that reward machines are not in the environment black box
+
+    include same task from previous chapter and how a reward machine for that might look like as a graph
+
+    central theorems:
+    \begin{itemize}
+        \item construction/correspondence to LTL and such
+        \item convergence proof
+    \end{itemize}
+
+\end{notes}
+
+
+\usetikzlibrary{graphs, quotes}
+\begin{figure}[h]
+    \centering
+    \tikz{
+    \node[draw, rectangle, minimum width=5em, minimum height=3em] (a) at (0,0) {Agent};
+    \node[draw, rectangle, minimum width=5em, minimum height=3em] (e) at (6,0) {Environment};
+    \node[draw, rectangle, minimum width=5em, minimum height=3em] (rm) at (3,-3) {Reward Machine};
+
+    \graph[multi, grow right sep]{
+    (a) ->["action $a_t$", bend left] (e);
+    (e) ->["state $s_{t+1}$", bend left, swap] (a);
+    (e) ->["state $s_{t+1}$", bend left] (rm);
+    (rm) ->["reward $r_{t+1}$", bend left=30, pos=0.3, swap, auto] (a);
+    (rm) ->["RM state $u_{t+1}$", bend left=50, pos=0.5, auto] (a);
+    };
+    }
+    \caption{Diagram of the reinforcement learning feedback loop with a reward machine. The agent now not only gets an environment state but also a reward machine state.}
+    \label{fig:rm_framework}
+\end{figure}
+
+The mathematical model for this is ...
+
+\begin{definition}
+    \label{def:mdprm}
+    A \emph{Markov Decision Process with Reward Machine (MDPRM)} is ...
+\end{definition}
