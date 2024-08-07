@@ -10,3 +10,4 @@
 *.gz
 *.toc
 .venv/
+pyrightconfig.json

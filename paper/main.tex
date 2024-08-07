@@ -45,7 +45,7 @@
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[section]
 % \newtheorem{lemma}[theorem]{Lemma}
-% \newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{proposition}[theorem]{Proposition}
 % \newtheorem{corollary}[theorem]{Corollary}
 
 \theoremstyle{definition}
@@ -79,6 +79,10 @@
 % \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\R}{\mathbb{R}}
 \renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\S}{\mathcal{S}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\calR}{\mathcal{R}}
 % \renewcommand{\C}{\mathbb{C}}
 % \renewcommand{\d}{\textup{d}}
 % \renewcommand{\O}{\mathcal{O}}
@@ -103,6 +107,15 @@
 % \newcommand{\vect}[3]{\left(#1,\, #2,\, #3 \right)}
 
 \newenvironment{notes}{\begin{quote}\color{gray}}{\end{quote}}
+\newcommand{\todo}[1][\empty]{
+    {\color{red}
+    \ifx#1\empty
+        TODO!
+    \else
+        TODO: #1
+    \fi
+    }
+}
 
 
 \begin{document}

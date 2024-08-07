@@ -14,8 +14,11 @@
 \end{notes}
 
 The goal of reinforcement learning is to learn a task by maximizing the total rewards along sequences of decisions called episodes. The difficulty is that decisions can have delayed consequences.
+\begin{notes}
+    too terse, explain more naturally
+\end{notes}
 
-We have an agent that acts in an environment. How the environment behaves is unknown to the agent, i.e. how the environment goes from state to state is a black box, its transition probabilities are not known. Furthermore for each action the agent takes it receives a reward from the environment but how these rewards are determined is also not visible to the agent. So the environment is a complete black box to the agent.
+We have an agent that acts in an environment. How the environment behaves is unknown to the agent. Furthermore for each action the agent takes it receives a reward from the environment, but how these rewards are determined is also not visible to the agent. So the environment is a complete black box to the agent.
 
 Consider the following example as a demonstration of the reinforcement learning framework. In a grid-based office environment a robot is tasked with bringing coffee from the kitchen to a particular office, see figure \ref{fig:officegrid} for the layout.
 
@@ -26,7 +29,7 @@ Consider the following example as a demonstration of the reinforcement learning 
     \label{fig:officegrid}
 \end{figure}
 
-The environment starts in state $s_0 \in S$ and for each state $s_t$ at time $t \in \N$ the agent has to decide on an action $a_t \in A$ like going up, down, left, right or use the coffee machine. After executing the action the environment changes to a new state $s_{t+1}$ and rewards the robot with a reward $r_{t+1} \in \R$. This feedback loop is shown as a diagram in figure \ref{fig:rl_framework}.
+The environment starts in state $S_0$ and for each state $S_t \in \S$ at time $t \in \N$ the agent has to decide on an action $A_t \in \A$ like going up, down, left, right or use the coffee machine. After executing the action the environment changes to a new state $S_{t+1}$ and rewards the robot with a reward $R_{t+1} \in \calR \subseteq \R$. This feedback loop is shown as a diagram in figure \ref{fig:rl_framework}.
 
 \usetikzlibrary{graphs, quotes}
 \begin{figure}[h]
@@ -36,40 +39,81 @@ The environment starts in state $s_0 \in S$ and for each state $s_t$ at time $t 
     \node[draw, rectangle, minimum width=5em, minimum height=3em] (e) at (6,0) {Environment};
 
     \graph[multi, grow right sep]{
-    (a) ->["action $a_t$", bend left] (e);
-    (e) ->["reward $r_{t+1}$", bend left=50] (a);
-    (e) ->["state $s_{t+1}$", bend left=30, swap] (a);
+    (a) ->["action $A_t$", bend left] (e);
+    (e) ->["reward $R_{t+1}$", bend left=50] (a);
+    (e) ->["state $S_{t+1}$", bend left=30, swap] (a);
     };
     }
     \caption{Diagram of the reinforcement learning feedback loop.}
     \label{fig:rl_framework}
 \end{figure}
 
-The usual way to model this is via a Markov decision process. What represents what? what is the idea, why markov process??
-describe probability measure $\P$ and stochastic processes to more rigorously define the quantities and then give the implicit definition using (S, A, P, R, gamma)
+From the point of view of the agent the environment and the rewards are random processes. Here for example $(S_t)_{t \in \N} \subseteq \S$ describes the evolution of the states and $(R_t)_{t \in \N} \subseteq \calR$ the rewards, which are defined on some probability space with joint measure $\P$. A key assumption is that these processes do not remember any history other than the state that they are currently in, i.e. $\P(S_{t+1} = s, R_{t+1} = r \ | \ S_0, A_0, S_1, R_1, A_1, \dots, S_t, R_t, A_t) = \P(S_{t+1} = s, R_{t+1} = r \ | \ S_t, A_t)$.
+This means that we assume that the environment has the Markov property and altough in real life scenarios this might not be quite true it is still a good approximation and the theory for non-Markovian processes also uses the ideas we will develop in this chapter.
+
+Following \cite{RL2018} we will also assume finite spaces for the sake of clarity but the theory can also be developed using probability densities on infinite spaces. Usually we do not care about the details of these processes and underlying probability spaces, but we work with some derived quantities instead, namely the state-transition probability distribution $p(s' | s, a) = \sum_{r \in \calR} \P(S_{t+1} = s', R_{t+1} = r \ | \ S_t = s, A_t = a)$ and the expected reward $r(s,a) = \E(R_{t+1} \ | \ S_t = s, A_t = a) = \sum_{s' \in \S} \sum_{r \in \calR} \P(S_{t+1} = s', R_{t+1} = r \ | \ S_t = s, A_t = a)$. This motivates the defining model of RL, the Markov decision process:
+
+\begin{notes}
+    why markov property? is there some more motivation other than it works?
+\end{notes}
 
 \begin{definition}
     \label{def:mdp}
-    A \emph{Markov Decision Process (MDP)} is given by a tuple $(S, A, P, R, \gamma)$, where $S$ is a finite set of \emph{states}, $A$ is a finite set of \emph{actions}, $P: S \times A \times S \to [0,1]$ is the \emph{transition probability distribution}, $R: S \times A \times S \to \R$ is the \emph{reward function} and $\gamma \in [0,1]$ is a \emph{discount factor}.
+    A \emph{Markov Decision Process (MDP)} is given by a tuple $(\S, \A, p, r, \gamma)$, where $\S$ is a finite set of \emph{states}, $A$ is a finite set of \emph{actions}, $p: S \times S \times A \to [0,1]$ is the \emph{state-transition probability distribution}, $r: S \times A \to \R$ is the \emph{reward function} and $\gamma \in [0,1]$ is a \emph{discount factor}.
+    Note that here implicitly $\calR$ is the image of $r$ and thus a finite subset of $\R$.
 \end{definition}
 
-This MDP models the diagram in figure \ref{fig:rl_framework} from above as follows: From a given state $s \in S$ the agent chooses an action $a \in A$ and the environment changes to state $s' \in S$ with probability $P_a(s, s')$ and gives reward $R_a(s, s')$. The discount factor will become relevant in a moment but in essence a lower discount factor would motivate the agent to take actions based on the reward sooner rather than later as with a higher discount factor.
+This MDP models the diagram in figure \ref{fig:rl_framework} from above as follows: From a given state $s \in \S$ the agent chooses an action $a \in \A$ and the environment changes to state $s' \in \S$ with probability $p(s' | s, a)$ and gives reward $r(s, a)$. The discount factor will become relevant in a moment but in essence a lower discount factor would motivate the agent to take actions based on the reward sooner rather than later as with a higher discount factor.
 
-In the office world example ...
+In the office world example ... \todo[what is the mdp in the example]
+
+\todo[motivate a policy]
 
 \begin{definition}
     \label{def:policy}
-    A policy $\pi: S \times A \to [0,1]$ is a probabiliy distribution that prescribes an action $a \in A$ to be taken for a given state $s \in S$ with probability $\pi(a | s)$.
+    A policy $\pi: \S \times \A \to [0,1]$ is a probabiliy distribution that prescribes an action $a \in \A$ to be taken for a given state $s \in \S$ with probability $\pi(a | s)$.
 \end{definition}
 
-In the office world example a policy could be to go left when in room 1 and go right when in room 2 or stand still when not in either room. Of course this would not be a good policy, but what constitutes "good" will be defined with the Q-function.
+For our office world example a policy could be to go left when in room 1 and go right when in room 2 or stand still when not in either room. Of course this would not be a good policy, but what constitutes a "good" policy will be defined with the state value function and the action value function.
+
+\begin{definition}
+    \label{def:value}
+    The state value function, often just value function, $v_\pi: \S \to \R$ under a policy $\pi$ is defined as the expected discounted sum of future rewards starting from a state $s \in \S$ and taking actions according to $\pi$:
+    $$v_\pi(s) = r_\pi(s) + \gamma \sum_{s' \in \S} \left( p_\pi(s' | s) r_\pi(s') + \gamma \sum_{s'' \in \S} \bigg( p_\pi(s'' | s') r_\pi(s'') + \dots \bigg) \right)$$
+    where $p_\pi(s' | s) = \sum_{a \in \A} \pi(a | s) p(s' | s, a)$ and $r_\pi(s) = \sum_{a \in \A} \pi(a | s) r(s, a)$.
+    Since we only consider finite spaces in this setting we get the following in vector form:
+    \begin{align*}
+        V_\pi & = R_\pi + \gamma \sum_{s' \in \S}\left( (P_\pi)_{s,s'} (R_\pi)_s + \gamma \sum_{s'' \in \S} \bigg( (P_\pi)_{s',s''} (R_\pi)_{s''} + \dots \bigg) \right) \\
+              & = R_\pi + \gamma \sum_{s' \in \S} (P_\pi)_{s,s'} (R_\pi)_{s'} + \gamma^2 \sum_{s' \in \S} (P_\pi^2)_{s,s'} (R_\pi)_{s'} + \dots                          \\
+              & = R_\pi + \gamma P_\pi V_\pi
+    \end{align*}
+    where $P_\pi \in [0,1]^{|\S| \times |\S|}$ is the transition matrix, $R_\pi \in \R^{|\S|}$ the vector of all rewards and $V_\pi \in \R^{|\S|}$ the state-values vector.
+\end{definition}
 
 \begin{definition}
     \label{def:q}
-    The Q-function $q_\pi: S \times A \to \R$ under a policy $\pi$ is
-
+    The action value function or Q-function $q_\pi: \S \times \A \to \R$ under a policy $\pi$ is the expected discounted sum of taking action $a \in \A$ in state $s \in \S$ and then following policy $\pi$:
+    $$q_\pi(s, a) = r(s, a) + \gamma \sum_{s' \in \S} p(s' | s, a) v_\pi(s')$$
 \end{definition}
 
-prove existance of optimal policy
+Now that we have defined the value of a policy for each state we can define when a policy is considered "better" than another.
 
-prove Bellman optimality equation for MDP (write about the dynamical programming approach % https://www.wikiwand.com/en/Dynamic_programming)
+\begin{definition}
+    \label{def:policy-order}
+    We say $\pi \ge \pi'$ if $v_\pi(s) \ge v_{\pi'}(s)$ for all states $s \in \S$, which naturally defines a partial order on the space of policies.
+\end{definition}
+
+Of course this leads to the natural question if there is a "best" policy, to which the answer is yes.
+
+\begin{proposition}
+    \label{prop:optimal-policy}
+    For a finite MDP there exists an optimal policy.
+\end{proposition}
+
+\begin{proof}
+    \todo
+\end{proof}
+
+\begin{notes}
+    write about the dynamical programming approach: \url{https://www.wikiwand.com/en/Dynamic_programming)}
+\end{notes}
