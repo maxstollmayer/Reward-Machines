@@ -13,19 +13,19 @@
     \end{itemize}
 \end{notes}
 
-The goal of reinforcement learning is to learn a task by maximizing the total rewards along sequences of decisions called episodes. The difficulty is that decisions can have delayed consequences.
-\begin{notes}
-    too terse, explain more naturally
-\end{notes}
+The goal of reinforcement learning is to learn a task by maximizing the total rewards along sequences of decisions called episodes. The difficulty is that decisions can have delayed consequences. \todo[explain this more naturally]
 
 We have an agent that acts in an environment. How the environment behaves is unknown to the agent. Furthermore for each action the agent takes it receives a reward from the environment, but how these rewards are determined is also not visible to the agent. So the environment is a complete black box to the agent.
 
 Consider the following example as a demonstration of the reinforcement learning framework. In a grid-based office environment a robot is tasked with bringing coffee from the kitchen to a particular office, see figure \ref{fig:officegrid} for the layout.
+\begin{notes}
+    maybe a better example would be a grid world where the agent should try to climb the hill and not fall into the pit or something along those lines, see \cite{RL2018}
+\end{notes}
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=10cm, height=5cm]{example-image-a}
-    \caption{office world...}
+    \caption{office world... \todo}
     \label{fig:officegrid}
 \end{figure}
 
@@ -51,11 +51,7 @@ The environment starts in state $S_0$ and for each state $S_t \in \S$ at time $t
 From the point of view of the agent the environment and the rewards are random processes. Here for example $(S_t)_{t \in \N} \subseteq \S$ describes the evolution of the states and $(R_t)_{t \in \N} \subseteq \calR$ the rewards, which are defined on some probability space with joint measure $\P$. A key assumption is that these processes do not remember any history other than the state that they are currently in, i.e. $\P(S_{t+1} = s, R_{t+1} = r \ | \ S_0, A_0, S_1, R_1, A_1, \dots, S_t, R_t, A_t) = \P(S_{t+1} = s, R_{t+1} = r \ | \ S_t, A_t)$.
 This means that we assume that the environment has the Markov property and altough in real life scenarios this might not be quite true it is still a good approximation and the theory for non-Markovian processes also uses the ideas we will develop in this chapter.
 
-Following \cite{RL2018} we will also assume finite spaces for the sake of clarity but the theory can also be developed using probability densities on infinite spaces. Usually we do not care about the details of these processes and underlying probability spaces, but we work with some derived quantities instead, namely the state-transition probability distribution $p(s' | s, a) = \sum_{r \in \calR} \P(S_{t+1} = s', R_{t+1} = r \ | \ S_t = s, A_t = a)$ and the expected reward $r(s,a) = \E(R_{t+1} \ | \ S_t = s, A_t = a) = \sum_{s' \in \S} \sum_{r \in \calR} \P(S_{t+1} = s', R_{t+1} = r \ | \ S_t = s, A_t = a)$. This motivates the defining model of RL, the Markov decision process:
-
-\begin{notes}
-    why markov property? is there some more motivation other than it works?
-\end{notes}
+Following \cite{RL2018} we will also assume finite spaces for the sake of clarity but the theory can also be developed using probability densities on infinite spaces. Usually we do not care about the details of these processes and underlying probability spaces, but we work with some derived quantities instead, namely the state-transition probability distribution $p(s' | s, a) = \sum_{r \in \calR} \P(S_{t+1} = s', R_{t+1} = r \ | \ S_t = s, A_t = a)$ and the expected reward $r(s,a) = \E(R_{t+1} \ | \ S_t = s, A_t = a) = \sum_{s' \in \S} \sum_{r \in \calR} \P(S_{t+1} = s', R_{t+1} = r \ | \ S_t = s, A_t = a)$. This motivates the defining model of RL, the Markov decision process: \todo[motivate more why we want markov property]
 
 \begin{definition}
     \label{def:mdp}
@@ -63,7 +59,7 @@ Following \cite{RL2018} we will also assume finite spaces for the sake of clarit
     Note that here implicitly $\calR$ is the image of $r$ and thus a finite subset of $\R$.
 \end{definition}
 
-This MDP models the diagram in figure \ref{fig:rl_framework} from above as follows: From a given state $s \in \S$ the agent chooses an action $a \in \A$ and the environment changes to state $s' \in \S$ with probability $p(s' | s, a)$ and gives reward $r(s, a)$. The discount factor will become relevant in a moment but in essence a lower discount factor would motivate the agent to take actions based on the reward sooner rather than later as with a higher discount factor.
+This MDP models the diagram in figure \ref{fig:rl_framework} from above as follows: From a given state $s \in \S$ the agent chooses an action $a \in \A$ and the environment changes to state $s' \in \S$ with probability $p(s' | s, a)$ and gives reward $r(s, a)$. The action space can actually depend on the state the agent is currently in, like in our example the agent cannot go outside the boundary, so the action space is limited when the agent is at the wall. But since we assume finite states, this distinction does not matter, so we will omit it for simplicity. The discount factor will become relevant in a moment but in essence a lower discount factor would motivate the agent to take actions based on the reward sooner rather than later as with a higher discount factor.
 
 In the office world example ... \todo[what is the mdp in the example]
 
@@ -71,29 +67,32 @@ In the office world example ... \todo[what is the mdp in the example]
 
 \begin{definition}
     \label{def:policy}
-    A policy $\pi: \S \times \A \to [0,1]$ is a probabiliy distribution that prescribes an action $a \in \A$ to be taken for a given state $s \in \S$ with probability $\pi(a | s)$.
+    A \emph{(deterministic) policy} $\pi: \S \to \A$ is a function that prescribes an action $\pi(s) \in \A$ to a given state $s \in \S$.
+
+    A \emph{(non-deterministic) policy} $\pi: \A \times \S \to [0,1]$ is a probabiliy distribution that describes the probability $\pi(a | s)$ of taking an action $a \in \A$ in the given state $s \in \S$.
 \end{definition}
+
+In the following we will freely alternate between the two, whatever is most convenient. Whenever we write $\pi(s)$ we mean a deterministic policy and when we write $\pi(a | s)$ we mean a non-deterministic one.
 
 For our office world example a policy could be to go left when in room 1 and go right when in room 2 or stand still when not in either room. Of course this would not be a good policy, but what constitutes a "good" policy will be defined with the state value function and the action value function.
 
-\begin{definition}
+\begin{definition}[Value of Policies]
     \label{def:value}
-    The state value function, often just value function, $v_\pi: \S \to \R$ under a policy $\pi$ is defined as the expected discounted sum of future rewards starting from a state $s \in \S$ and taking actions according to $\pi$:
-    $$v_\pi(s) = r_\pi(s) + \gamma \sum_{s' \in \S} \left( p_\pi(s' | s) r_\pi(s') + \gamma \sum_{s'' \in \S} \bigg( p_\pi(s'' | s') r_\pi(s'') + \dots \bigg) \right)$$
-    where $p_\pi(s' | s) = \sum_{a \in \A} \pi(a | s) p(s' | s, a)$ and $r_\pi(s) = \sum_{a \in \A} \pi(a | s) r(s, a)$.
-    Since we only consider finite spaces in this setting we get the following in vector form:
-    \begin{align*}
-        V_\pi & = R_\pi + \gamma \sum_{s' \in \S}\left( (P_\pi)_{s,s'} (R_\pi)_s + \gamma \sum_{s'' \in \S} \bigg( (P_\pi)_{s',s''} (R_\pi)_{s''} + \dots \bigg) \right) \\
-              & = R_\pi + \gamma \sum_{s' \in \S} (P_\pi)_{s,s'} (R_\pi)_{s'} + \gamma^2 \sum_{s' \in \S} (P_\pi^2)_{s,s'} (R_\pi)_{s'} + \dots                          \\
-              & = R_\pi + \gamma P_\pi V_\pi
-    \end{align*}
-    where $P_\pi \in [0,1]^{|\S| \times |\S|}$ is the transition matrix, $R_\pi \in \R^{|\S|}$ the vector of all rewards and $V_\pi \in \R^{|\S|}$ the state-values vector.
-\end{definition}
+    \begin{enumerate}[(i)]
+        \item The \emph{state-value function}, often just \emph{value function}, $v_\pi: \S \to \R$ under a policy $\pi$ is defined as the expected discounted sum of future rewards starting from a state $s \in \S$ and taking actions according to $\pi$:
+              $$v_\pi(s) = r_\pi(s) + \gamma \sum_{s' \in \S} \left( p_\pi(s' | s) r_\pi(s') + \gamma \sum_{s'' \in \S} \bigg( p_\pi(s'' | s') r_\pi(s'') + \dots \bigg) \right)$$
+              where $p_\pi(s' | s) = \sum_{a \in \A} \pi(a | s) p(s' | s, a)$ and $r_\pi(s) = \sum_{a \in \A} \pi(a | s) r(s, a)$.
+              Since we only consider finite spaces in this setting we get the following in vector form:
+              \begin{align*}
+                  V_\pi & = R_\pi + \gamma \sum_{s' \in \S}\left( (P_\pi)_{s,s'} (R_\pi)_s + \gamma \sum_{s'' \in \S} \bigg( (P_\pi)_{s',s''} (R_\pi)_{s''} + \dots \bigg) \right) \\
+                        & = R_\pi + \gamma \sum_{s' \in \S} (P_\pi)_{s,s'} (R_\pi)_{s'} + \gamma^2 \sum_{s' \in \S} (P_\pi^2)_{s,s'} (R_\pi)_{s'} + \dots                          \\
+                        & = R_\pi + \gamma P_\pi V_\pi
+              \end{align*}
+              where $P_\pi \in [0,1]^{|\S| \times |\S|}$ is the transition matrix, $R_\pi \in \R^{|\S|}$ the vector of all rewards and $V_\pi \in \R^{|\S|}$ the state-values vector.
 
-\begin{definition}
-    \label{def:q}
-    The action value function or Q-function $q_\pi: \S \times \A \to \R$ under a policy $\pi$ is the expected discounted sum of taking action $a \in \A$ in state $s \in \S$ and then following policy $\pi$:
-    $$q_\pi(s, a) = r(s, a) + \gamma \sum_{s' \in \S} p(s' | s, a) v_\pi(s')$$
+        \item The \emph{action-value function} or \emph{Q-function} $q_\pi: \S \times \A \to \R$ under a policy $\pi$ is the expected discounted sum of taking action $a \in \A$ in state $s \in \S$ and then following policy $\pi$:
+              $$q_\pi(s, a) = r(s, a) + \gamma \sum_{s' \in \S} p(s' | s, a) v_\pi(s')$$
+    \end{enumerate}
 \end{definition}
 
 Now that we have defined the value of a policy for each state we can define when a policy is considered "better" than another.
@@ -103,17 +102,65 @@ Now that we have defined the value of a policy for each state we can define when
     We say $\pi \ge \pi'$ if $v_\pi(s) \ge v_{\pi'}(s)$ for all states $s \in \S$, which naturally defines a partial order on the space of policies.
 \end{definition}
 
-Of course this leads to the natural question if there is a "best" policy, to which the answer is yes.
+If we already have a policy we can improve upon it by utilising its q-function. \todo[expand upon this]
 
-\begin{proposition}
+\begin{proposition}[Greedy Policy Improvement]
+    For a policy $\pi$ define a deterministic policy $\pi'(s) = \argmax_{a \in \A} q_\pi(s, a)$ $\forall s \in \S$. Then $\pi' \ge \pi$.
+\end{proposition}
+\begin{proof}
+    \todo
+\end{proof}
+
+This can be used as an algorithm to find a good policy by iteratively improving the policy. One issue with this greedy policy improvement is that not all state-action pairs are visited. It will always select the immediate best option and not explore other options, which is why it is called greedy. The issues that this can have will be more clear later in this chapter. But basically the algorithm could get stuck in a local optimum for a while or if we only have an approximation to the environment, it may be subotimal. We can help with this problem by turning the improved policy into a non-deterministic one. Instead of always selecting the greedy action we can select it with probability $1 - \eps$ and all other actions with equal likelihood.
+
+\begin{proposition}[$\eps$-Greedy Policy Improvement]
+    For a policy $\pi$ define the $\eps$-greedy policy for $0 < \eps \ll 1$ and $\forall s \in \S$.
+    $$\pi'(a | s) = \begin{cases}
+            1 - \eps + \frac{\eps}{|\A|} \quad & \mathrm{if} \ a = \argmax_{a' \in \A} q_\pi(s, a') \\
+            \frac{\eps}{|\A|} \quad            & \mathrm{else}
+        \end{cases}$$
+    Then $\pi' \ge \pi$.
+\end{proposition}
+\begin{proof}
+    \todo[or just write analagously?]
+\end{proof}
+
+Naturally, the question arises if there is a best policy and if the ($\eps$-)greedy policy improvement converges. The answer to both is yes.
+
+\begin{proposition}[Existence of Optimal Policy]
     \label{prop:optimal-policy}
     For a finite MDP there exists an optimal policy.
 \end{proposition}
+\begin{proof}
+    \todo
+\end{proof}
 
+Iteratively improving the policy using the above schemes until the value functions no longer increase, we get an algorithm that converges to an optimal policy. \todo[more?]
+
+\begin{proposition}[($\eps$-)Greedy Policy Improvement Convergence]
+    Using ($\eps$-)greedy policy improvement, when $v_{\pi'} = v_\pi$, then $\pi' = \pi = \pi_*$ is an optimal policy.
+\end{proposition}
+\begin{proof}
+    \todo
+\end{proof}
+
+\todo[this is not model-free, but we can use the following to make an algorithm that is, explain these terms and the issues]
+
+These optimal policies need not be unique though, but every optimal policy $\pi^*$ satisfies the Bellman optimality equation. \todo[why do we care about this?]
+
+\begin{proposition}[Bellman Optimality Equation]
+    If $\pi^*$ is an optimal policy, then its value functions $v_* = v_{\pi^*}$ and $q_* = q_{\pi^*}$ satisfy the following.
+    $$v_*(s) = \max_{a \in \A} r(s,a) + \gamma \sum_{s' \in \S} p(s'|s,a) v_*(s')$$
+    $$q_*(s, a) = r(s,a) + \gamma \sum_{s' \in \S} p(s' | s, a) \max_{a' \in \A} q_*(s', a')$$
+\end{proposition}
 \begin{proof}
     \todo
 \end{proof}
 
 \begin{notes}
-    write about the dynamical programming approach: \url{https://www.wikiwand.com/en/Dynamic_programming)}
+    - first introduce model-free issues and then bellman equation for value iteration?
+
+    - first q learning or DP? \url{https://www.wikiwand.com/en/Dynamic_programming}, i.e. using recursion to break down into simpler subproblems and then can use techniques such as memoization
+
 \end{notes}
+
