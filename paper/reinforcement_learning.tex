@@ -135,7 +135,7 @@ Naturally, the question arises if there is a best policy and if the ($\eps$-)gre
     \todo
 \end{proof}
 
-Iteratively improving the policy using the above schemes until the value functions no longer increase, we get an algorithm that converges to an optimal policy. \todo[more?]
+Iteratively improving the policy using the above schemes until the value functions no longer increase, we get an algorithm that converges to an optimal policy. This optimal policy need not be unique though.
 
 \begin{proposition}[($\eps$-)Greedy Policy Improvement Convergence]
     Using ($\eps$-)greedy policy improvement, when $v_{\pi'} = v_\pi$, then $\pi' = \pi = \pi_*$ is an optimal policy.
@@ -144,9 +144,8 @@ Iteratively improving the policy using the above schemes until the value functio
     \todo
 \end{proof}
 
-\todo[this is not model-free, but we can use the following to make an algorithm that is, explain these terms and the issues]
-
-These optimal policies need not be unique though, but every optimal policy $\pi^*$ satisfies the Bellman optimality equation. \todo[why do we care about this?]
+In order to use this algorithm though, we need to determine $\argmax_{a \in \A} q_\pi(s, a)$. But to calculate $q_\pi(s,a)$ we would need to know the transition probabilites $p(s' | s. a)$ of the environment as well as the rewards $r(s,a)$. For non-toy examples we usually do not know these, so we would need a way to model the environment. Alternatively we can approach this without a model and use so called model-free algorithms.
+To construct a model-free algorithm, we will use a property that an optimal policy $\pi_*$ satisfies, called the Bellman optimality equation.
 
 \begin{proposition}[Bellman Optimality Equation]
     If $\pi^*$ is an optimal policy, then its value functions $v_* = v_{\pi^*}$ and $q_* = q_{\pi^*}$ satisfy the following.
@@ -158,9 +157,51 @@ These optimal policies need not be unique though, but every optimal policy $\pi^
 \end{proof}
 
 \begin{notes}
-    - first introduce model-free issues and then bellman equation for value iteration?
+    - use simple example (mountain car? crossing river?)
+
+    - existence of optimal policy
+
+    - bellman optimality equation
+
+    - value iteration
+
+    - notes on model/model-free and DP
+
+    -
+
+    - model-free is using q, using v requires model
 
     - first q learning or DP? \url{https://www.wikiwand.com/en/Dynamic_programming}, i.e. using recursion to break down into simpler subproblems and then can use techniques such as memoization
 
-\end{notes}
+    - DP requires complete knowledge, but even with its computationally too expensive
 
+    - use order from lecture:
+
+    \begin{enumerate}
+        \item MRP
+        \item value function
+        \item Bellman equations for MRP
+        \item MDP
+        \item Policy
+        \item action value function
+        \item optimal policy
+        \item Bellman optimality equations
+        \item Bellman expectation operator
+        \item policy evaluation
+        \item policy improvement
+        \item policy improvement convergence
+        \item Bellman optimality operator
+        \item value iteration
+        \item notes on DP: not model-free / computationally expensive
+        \item episode
+        \item first visit monte carlo
+        \item temporal difference
+        \item greedy policy improvement
+        \item exporation and $\eps$-greedy
+        \item GLIE
+        \item GLIE Monte carlo
+        \item On-Policy SARSA
+        \item On/Off-Policy
+        \item Off-Policy Q-Learning
+    \end{enumerate}
+\end{notes}
