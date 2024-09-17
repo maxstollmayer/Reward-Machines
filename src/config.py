@@ -1,0 +1,14 @@
+import math
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FPS = 60
+BLACK = (0, 0, 0)
+TITLE_CAPTION = "test game"  # TODO: change
+
+CAR_WIDTH = 30
+CAR_LENGTH = 50
+ACCELERATION = 0.2
+TURNING_ANGLE = math.radians(3)
+FRICTION = 0.05
+MAX_SPEED = 8
