@@ -2,8 +2,18 @@ import sys
 
 import pygame
 
-from models import Player, Agent, Obstacle, State
-from config import SCREEN_HEIGHT, SCREEN_WIDTH, TITLE_CAPTION, BLACK, FPS
+from models import Human, State
+from config import (
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SCREEN_CENTER,
+    WORLD_HEIGHT,
+    WORLD_WIDTH,
+    TITLE_CAPTION,
+    FPS,
+    BLACK,
+    WHITE,
+)
 
 
 pygame.init()
@@ -11,10 +21,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption(TITLE_CAPTION)
 clock = pygame.time.Clock()
 
-player = Player((100, 200), 0)
-ai = Agent((SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), 0)
-obstacle = Obstacle([(100, 100), (200, 500), (400, 200), (700, 500)])
-cars = [player, ai, obstacle]
+player = Human((0, 0), 0)
+# TODO: create obstacles: pothole? crosswalk? cars?
 
 
 def main():
@@ -24,23 +32,21 @@ def main():
                 pygame.quit()
                 sys.exit()
 
-        # TODO: get field of view of the ai
-        # or maybe just the whole screen as a starting point
-        # how to handle edges? different color of pixels?
-        # make whole screen the view of ai and the map bigger with scrolling
+        state = State(pygame.key.get_pressed(), pygame.display.get_surface())
+        player.update(state)
+        camera = player.pos - SCREEN_CENTER
 
-        state = State(pygame.key.get_pressed(), None)
-        for car in cars:
-            car.update(state)
+        # clamp camera?
+        # camera[0] = max(0, min(camera[0], WORLD_WIDTH - SCREEN_WIDTH))
+        # camera[1] = max(0, min(camera[1], WORLD_HEIGHT - SCREEN_HEIGHT))
 
-        # TODO: implement rewards
-        # TODO: implement collision for negative rewards
-        # how to handle training vs inference?
-
+        # TODO: draw cars carpet
         screen.fill(BLACK)
+        pygame.draw.rect(
+            screen, WHITE, (-camera[0], -camera[1], WORLD_WIDTH, WORLD_HEIGHT)
+        )
 
-        for car in cars:
-            screen.blit(car.surf, car.rect)
+        screen.blit(player.surf, player.rect)
 
         pygame.display.update()
         clock.tick(FPS)
