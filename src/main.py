@@ -2,11 +2,10 @@ import sys
 
 import pygame
 
-from models import Human, State
+from models import Car, Human, Pothole, State
 from config import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
-    SCREEN_CENTER,
     WORLD_HEIGHT,
     WORLD_WIDTH,
     TITLE_CAPTION,
@@ -23,6 +22,8 @@ clock = pygame.time.Clock()
 
 player = Human((0, 0), 0)
 # TODO: create obstacles: pothole? crosswalk? cars?
+pothole = Pothole((0, 0))
+car = Car([(300, 200), (0, 0), (800, 200), (1500, 1000)])
 
 
 def main():
@@ -32,21 +33,22 @@ def main():
                 pygame.quit()
                 sys.exit()
 
-        state = State(pygame.key.get_pressed(), pygame.display.get_surface())
+        state = State(pygame.key.get_pressed(), screen)
         player.update(state)
-        camera = player.pos - SCREEN_CENTER
+        camera = player.get_camera()
 
-        # clamp camera?
-        # camera[0] = max(0, min(camera[0], WORLD_WIDTH - SCREEN_WIDTH))
-        # camera[1] = max(0, min(camera[1], WORLD_HEIGHT - SCREEN_HEIGHT))
+        pothole.update(state)
+        car.update(state)
 
-        # TODO: draw cars carpet
         screen.fill(BLACK)
+        # TODO: draw cars carpet
         pygame.draw.rect(
             screen, WHITE, (-camera[0], -camera[1], WORLD_WIDTH, WORLD_HEIGHT)
         )
 
-        screen.blit(player.surf, player.rect)
+        pothole.draw(screen, camera)
+        car.draw(screen, camera)
+        player.draw(screen, camera)
 
         pygame.display.update()
         clock.tick(FPS)
