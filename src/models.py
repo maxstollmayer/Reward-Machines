@@ -2,7 +2,15 @@ from dataclasses import dataclass
 import pygame
 import math
 
-from config import SCREEN_CENTER, FRICTION
+from config import (
+    ACCELERATION,
+    CAR_LENGTH,
+    CAR_WIDTH,
+    MAX_SPEED,
+    SCREEN_CENTER,
+    FRICTION,
+    TURNING_ANGLE,
+)
 
 
 Num = int | float
@@ -90,7 +98,15 @@ class Entity(pygame.sprite.Sprite):
 
 class Player(Entity):
     def __init__(self, pos: Pos, angle: Num):
-        super().__init__(pos, angle, (30, 50), "car.png", acc=0.2, turn=3, max_speed=8)
+        super().__init__(
+            pos,
+            angle,
+            (CAR_WIDTH, CAR_LENGTH),
+            "car.png",
+            acc=ACCELERATION,
+            turn=TURNING_ANGLE,
+            max_speed=MAX_SPEED,
+        )
         # TODO: make car images correct angle to begin with
         #       maybe also a car that fits the theme of a car carpet
         self.image = pygame.transform.rotate(self.image, -90)
@@ -136,7 +152,7 @@ class Pothole(Entity):
 class Crosswalker(Entity):
     def __init__(self, pos: Pos, angle: Num):
         # TODO: create image
-        super().__init__(pos, angle, (30, 50), "car.png")
+        super().__init__(pos, angle, (CAR_WIDTH, CAR_LENGTH), "car.png")
 
     def move(self, state: State) -> Action:
         # TODO: implement crosswalking
@@ -145,40 +161,46 @@ class Crosswalker(Entity):
 
 class Car(Entity):
     def __init__(self, path: list[tuple[Num, Num]]):
-        self.path = [Vec(v) for v in path[::-1]]
-        start = self.path.pop()
-        self.target = self.path.pop()
-        diff = self.target - start
-        angle = -diff.angle_to((1, 0))
+        if not path:
+            raise ValueError("ERROR: Path cannot be empty.")
+
+        self.path = [Vec(v) for v in path]
+        if len(self.path) == 1:
+            self.target = -1
+            angle = 0
+        else:
+            self.target = 1
+            diff = self.path[self.target] - self.path[0]
+            angle = -diff.angle_to((1, 0))
+
         super().__init__(
-            start, angle, (30, 50), "car.png", acc=0.2, turn=3, max_speed=8
+            self.path[0],
+            angle,
+            (CAR_WIDTH, CAR_LENGTH),
+            "car.png",
+            acc=ACCELERATION,
+            turn=TURNING_ANGLE,
+            max_speed=MAX_SPEED,
         )
+        # TODO: make car.png in different color and correct angle
         self.image = pygame.transform.rotate(self.image, -90)
-        # TODO: make car.png in different color
-        self.stop = False
 
     def move(self, state: State) -> Action:
-        if self.stop:
+        if self.target == -1:
             return Action()
 
         # check if at target
-        diff = self.target - self.pos
+        diff = self.path[self.target % len(self.path)] - self.pos
         dist = diff.length_squared()
-        # TODO: put these numbers in config?
-        if dist <= 100:  # CAR_LENGTH**2
-            if not self.path:
-                self.stop = True
-                return Action()
-            self.target = self.path.pop()
+        if dist <= CAR_LENGTH**2:
+            self.target += 1
+            diff = self.path[self.target % len(self.path)] - self.pos
+            dist = diff.length_squared()
 
         # steer to next
         target_angle = -dir(self.angle).angle_to(diff)
-        print(self.angle, target_angle)
-        # TODO: see how full throttle behaves on car map and maybe change
-        forward = True  # dist > CAR_LENGTH**2
-        # TODO: put these numbers in config?
-        if target_angle > 5:  # self.turn
-            return Action(forward=forward, left=True)
-        if target_angle < -5:  # -self.turn
-            return Action(forward=forward, right=True)
-        return Action(forward=forward)
+        if target_angle > self.turn:
+            return Action(forward=True, left=True)
+        if target_angle < -self.turn:
+            return Action(forward=True, right=True)
+        return Action(forward=True)

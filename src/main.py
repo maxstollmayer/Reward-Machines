@@ -21,9 +21,14 @@ pygame.display.set_caption(TITLE_CAPTION)
 clock = pygame.time.Clock()
 
 player = Human((0, 0), 0)
-# TODO: create obstacles: pothole? crosswalk? cars?
+# TODO: create obstacles: pothole? crosswalk? cars? cyclists?
+# generate random potholes on the street at game start
+# generate random crosswalkers
+# generate random cars from a few different pre defined paths at start of game
+# make sure not to spawn them on top of the player
+# TODO: what about collisions between them?
 pothole = Pothole((0, 0))
-car = Car([(300, 200), (0, 0), (800, 200), (1500, 1000)])
+car = Car([(0, 0), (2000, 0), (2000, 1500)])
 
 
 def main():
@@ -33,12 +38,14 @@ def main():
                 pygame.quit()
                 sys.exit()
 
+        # TODO: calculate collision, when exactly?
         state = State(pygame.key.get_pressed(), screen)
-        player.update(state)
-        camera = player.get_camera()
 
         pothole.update(state)
         car.update(state)
+
+        player.update(state)
+        camera = player.get_camera()
 
         screen.fill(BLACK)
         # TODO: draw cars carpet
