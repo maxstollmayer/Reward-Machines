@@ -19,7 +19,7 @@ idea of the thesis is not to replicate a reward machine paper but to be of an ed
 ## Questions
 
 - What is the title of the thesis?
-- Can Turing Machines (or equivalent) be used instead of DFA?
+- Can Turing Machines (or equivalent) be used instead of DFA? the structure of an RM would probably have to change, how could that look like?
 - Can natural language be used or translated into reward specification or reward machines?
 - Can functional logic programming be used to specify a reward machine? See [podcast](https://podcasts.google.com/feed/aHR0cHM6Ly9mZWVkcy56ZW5jYXN0ci5jb20vZi9vU24xaTMxNi5yc3M/episode/ZjM2NzgwZDAtYWVjNC00N2QwLWJlYjMtNjg5ZWMzNjk2NTEy)
 - Is there a measure of equivalence of reward machines? Can we learn equivalent reward machines from a given one?
@@ -32,3 +32,11 @@ idea of the thesis is not to replicate a reward machine paper but to be of an ed
 - DFAs -> SFT -> complexity/entropy ??? see <https://arxiv.org/abs/1702.04394>
 - can rl be decomposed into a state learning (embedding?) and then policy learning?
 - can we use a kind of reward machine structure to decompose the sensory state input which is (approximate) markovian and build up such a machine that can represent some history or more holistic state representation, like updating a world model with the sensory input
+- what are policy gradients? how is RL combined with NNs? what are the states - continuous?
+- in the defintion of MDP+RM it uses a labeling function L: S x A x S -> 2^P, can this be approximated via a NN?
+- is it possible to include external memory to the agent as to overcome the regular language requirement since that is only what reward machines are capable of
+- are reward machines equivalent to DFAs or just DFA => RM?
+- how can histories be encoded in an RM? probably not arbitrary length histories but a fixed length one perhaps?
+- can you stack RMs? yes since you can stack DFAs in various ways
+- use a pushdown automaton that uses a stack to extend RMs?
+- can we extend the RM as a [labelled transition system](https://www.wikiwand.com/en/articles/Transition_system) or [action language](https://www.wikiwand.com/en/articles/Action_language)?

@@ -1,56 +1,64 @@
-from enum import Enum, auto
+import sys
 
-type State = int
-type Reward = float
+import pygame
 
-class Action(Enum):
-    Up = auto()
-    Down = auto()
-    Left = auto()
-    Right = auto()
-
-
-class RandomAgent:
-    def act(self, state: State) -> Action:
-        return Action.Up
-
-    def update(self, state: State, action: Action, reward: Reward, done: bool):
-        pass
+from models import Car, Human, Pothole, State
+from config import (
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    WORLD_HEIGHT,
+    WORLD_WIDTH,
+    TITLE_CAPTION,
+    FPS,
+    BLACK,
+    WHITE,
+)
 
 
-class GridWorld:
-    def __init__(self):
-        # give grid as input: list[list[Symbol]]
-        # what is a state? just a coordinate or does it encode more info like
-        # the whole grid with the actor moved
-        self._grid = [
-            [1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-        ]
-        self._width = 5
-        self._height = 4
-        self._state = 0
-        self._goal = 19
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption(TITLE_CAPTION)
+clock = pygame.time.Clock()
 
-    def get_index(self) -> tuple[int, int]:
-        y = self._state % self._height
-        x = self._state // self._height
-        return (x, y)
-
-
-    def reset(self) -> State:
-        self._state = 0
-        return 0
-
-    def step(self, action: Action) -> tuple[State, Reward, bool]:
-        x, y = self._state
-        return (x, y)
+player = Human((0, 0), 0)
+# TODO: create obstacles: pothole? crosswalk? cars? cyclists?
+# generate random potholes on the street at game start
+# generate random crosswalkers
+# generate random cars from a few different pre defined paths at start of game
+# make sure not to spawn them on top of the player
+# TODO: what about collisions between them?
+pothole = Pothole((0, 0))
+car = Car([(0, 0), (2000, 0), (2000, 1500)])
 
 
 def main():
-    print("Hello World!")
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        # TODO: calculate collision, when exactly?
+        state = State(pygame.key.get_pressed(), screen)
+
+        pothole.update(state)
+        car.update(state)
+
+        player.update(state)
+        camera = player.get_camera()
+
+        screen.fill(BLACK)
+        # TODO: draw cars carpet
+        pygame.draw.rect(
+            screen, WHITE, (-camera[0], -camera[1], WORLD_WIDTH, WORLD_HEIGHT)
+        )
+
+        pothole.draw(screen, camera)
+        car.draw(screen, camera)
+        player.draw(screen, camera)
+
+        pygame.display.update()
+        clock.tick(FPS)
 
 
 if __name__ == "__main__":

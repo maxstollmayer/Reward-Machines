@@ -10,5 +10,6 @@
 *.gz
 *.toc
 .venv/
+*/__pycache__/
 pyrightconfig.json
 
