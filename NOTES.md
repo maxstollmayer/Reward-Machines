@@ -9,11 +9,12 @@ idea of the thesis is not to replicate a reward machine paper but to be of an ed
 - make plot out of log
 - implement reward machine
 - send professor little bits to read and discuss
-- ? upload all pdfs to grok for querying
+- ? upload all pdfs to chatgpt for querying
 - change title in hyperref and title page
 - turn off colorlinks
 - add / remove only commands that are used (eg notes env)
 - revise layouting and typography
+- ? put proofs into appendix?
 
 ## Questions
 
@@ -29,3 +30,5 @@ idea of the thesis is not to replicate a reward machine paper but to be of an ed
 - maybe write a bit about [AI safety](aisafety.com)?
 - is P =? NP related to this? via DFAs?
 - DFAs -> SFT -> complexity/entropy ??? see <https://arxiv.org/abs/1702.04394>
+- can rl be decomposed into a state learning (embedding?) and then policy learning?
+- can we use a kind of reward machine structure to decompose the sensory state input which is (approximate) markovian and build up such a machine that can represent some history or more holistic state representation, like updating a world model with the sensory input

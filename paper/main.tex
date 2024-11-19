@@ -45,10 +45,10 @@
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[section]
 % \newtheorem{lemma}[theorem]{Lemma}
-% \newtheorem{proposition}[theorem]{Proposition}
-% \newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
 
-\theoremstyle{definition}
+% \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 % \newtheorem{example}[theorem]{Example}
 
@@ -67,11 +67,13 @@
 
 % \usepackage{minted} % for code highlighting
 
+\usepackage[shortlabels]{enumitem}
+% \setlist[enumerate,1]{label=(\roman*)}
 
 % \DeclareMathOperator{\tr}{tr}
 % \DeclareMathOperator{\rg}{rg}
 % \DeclareMathOperator*{\argmin}{arg\,min}
-% \DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmax}{arg\,max}
 % \DeclareMathOperator{\sgn}{sgn}
 % \DeclareMathOperator{\Div}{div}
 
@@ -79,10 +81,14 @@
 % \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\R}{\mathbb{R}}
 \renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\S}{\mathcal{S}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\calR}{\mathcal{R}}
 % \renewcommand{\C}{\mathbb{C}}
 % \renewcommand{\d}{\textup{d}}
 % \renewcommand{\O}{\mathcal{O}}
-% \renewcommand{\epsilon}{\varepsilon}
+\newcommand{\eps}{\varepsilon}
 % \renewcommand{\phi}{\varphi}
 % \newcommand{\defeq}{\mathrel{\mathop:}=}
 % \newcommand{\cart}{\!\times\!}
@@ -103,6 +109,15 @@
 % \newcommand{\vect}[3]{\left(#1,\, #2,\, #3 \right)}
 
 \newenvironment{notes}{\begin{quote}\color{gray}}{\end{quote}}
+\newcommand{\todo}[1][\empty]{
+    {\color{red}
+    \ifx#1\empty
+        TODO!
+    \else
+        TODO: #1
+    \fi
+    }
+}
 
 
 \begin{document}
