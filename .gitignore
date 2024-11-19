@@ -10,5 +10,5 @@
 *.gz
 *.toc
 .venv/
-/target
+pyrightconfig.json
 
