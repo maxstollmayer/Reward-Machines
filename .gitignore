@@ -9,6 +9,8 @@
 *.xml
 *.gz
 *.toc
+*.bbl-SAVE-ERROR
+*.bcf-SAVE-ERROR
 .venv/
 */__pycache__/
 pyrightconfig.json

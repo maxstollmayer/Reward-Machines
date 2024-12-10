@@ -1,0 +1,11 @@
+(0, 0, "!key&!truncated", 0)                # stay in u0 as long as key is not picked up
+(0, 1, "key&!truncated", 0)                 # transition to u1 if key is picked up
+(0, 3, "truncated", 0)                      # transition to terminal state u3 if stuck
+(1, 0, "!key&!door&!truncated", 0)          # transition back to u0 if key is dropped before door is opened
+(1, 1, "key&!door&!truncated", 0)           # stay in u1 as long as door is not opened and key is not dropped
+(1, 2, "door&!truncated", 0)                # transition to u2 if door is opened
+(1, 3, "truncated", 0)                      # transition to terminal state u3 if stuck
+(2, 1, "!door&!terminated&!truncated", 0)   # transition back to u1 if door is closed again
+(2, 2, "door&!terminated&!truncated", 0)    # stay in u2 as long as door is opened
+(2, 3, "truncated", 0)                      # transition to terminal state u3 if stuck
+(2, 4, "terminated&!truncated", 1)          # transition to terminal state u4 if exit is reached

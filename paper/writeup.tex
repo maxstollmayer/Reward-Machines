@@ -1,0 +1,226 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fontawesome5}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{tikz}
+\usepackage[backend=biber, sorting=ynt]{biblatex}
+\addbibresource{sources.bib}
+
+\renewcommand{\phi}{\varphi}
+\newcommand{\eps}{\varepsilon}
+
+\title{{\Huge Reward Machines} \\ A write-up on a potential Master's thesis.}
+\author{Maximilian Stollmayer}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+
+The goal of reinforcement learning is to get an agent to learn a task by maximizing the total rewards over sequences of decisions. The challenge lies in the fact that the consequences of decisions are often delayed, meaking it difficult for the agent to associate specific actions with their long-term outcomes.
+
+In reinforcement learning an agent interacts with an environment. The environment's behavior is unknown to the agent. For each action the agent takes it receives a reward from the environment, but how these rewards are determined is not visible to the agent. This makes the environment a complete black box from the agent's perspective. Figure \ref{fig:rl_framework} illustrates this feedback loop: the agent performs an action $a_t$ at time $t$, receives a new state $s_{t+1}$ and reward $r_{t+1}$ from the environment, and uses this feedback to inform its next action.
+
+For example consider as the agent a self-driving car. The car cannot predict the future, so it does not know in advance what it will encounter on the road, i.e. what the next state will be. Furthermore, at first, the car does not know what we expect from it, like whether it should prioritize reaching the desitination quickly, following speed limits or avoiding accidents. Rewards associated to these goals are unknown to the car initially. We want to make the car learn how to drive us from point A to B. But also adhere to constraints like obeying traffic laws.
+
+\usetikzlibrary{graphs, quotes}
+\begin{figure}[ht!]
+	\centering
+	\tikz{
+	\node[draw, rectangle, minimum width=5em, minimum height=3em] (a) at (0,0) {Agent};
+	\node[draw, rectangle, minimum width=5em, minimum height=3em] (e) at (6,0) {Environment};
+
+	\graph[multi, grow right sep]{
+	(a) ->["$a_t$", bend left] (e);
+	(e) ->["$r_{t+1}$", bend left=50] (a);
+	(e) ->["$s_{t+1}$", bend left=30, swap] (a);
+	};
+	}
+	\caption{Diagram of the reinforcement learning feedback loop.}
+	\label{fig:rl_framework}
+\end{figure}
+
+Specifying the reward function, i.e. the rule that maps each state-action pair to a reward, is often a complex and error-prone process. In our self-driving car example, we would need to account for numerous cases to design rewards that encourage the agent to both achieve the primary task of reaching the destination and satisfy constraints like stopping for pedestrians, etc. Crafting a reward function that balances all these considerations can quickly become unmanagable as tasks increase in complexity.
+
+Additionally sparse rewards present another significant challenge. In many scenarios the agent may receive no feedback for a majority of its actions. For example the self-driving car might only receive a positive reward after coming to a complete halt in front of a passing pedestrian. However it would get no reward for the crucial action of slowing down earlier, even though this behavior is critical for safety and anticipates the pedestrian's presence before they are fully visible.
+
+If we could introduce a layer of abstraction to simplify reward specification, it would make it easier to communicate task objectives to the agent. Furthermore if we exposed the structure of the reward system to the agent rather than treating it as a black box, the agent could exploit this information to accelerate learning.
+
+A reward machine addresses both of these challenges.
+
+
+\section*{Reward Machines}
+
+Reward machines are compact, structured representations that encode task objectives and constraints as finite-state machines. By decomposing a task into subtasks and defining rewards at each step, reward machines provide a more interpretable and flexible framework for reward specification. They make it easier to design rewards for complex tasks and enable agents to leverage this structure for faster and more efficient learning. Reward machines were introduced in \cite{RM2018}.
+
+Unlike the traditional reinforcement learning feedback loop, this new framework exposes the reward machine to the agent. After the agent takes action $a_t$ at time $t$ the reward machine receives the new state $s_{t+1}$ from the environment. It then transitions to a new internal state $u_{t+1}$ and assigns a reward $r_{t+1}$. Compare the figure \ref{fig:rm_framework} below to the original feedback loop diagram \ref{fig:rl_framework}.
+
+\usetikzlibrary{graphs, quotes}
+\begin{figure}[h!]
+	\centering
+	\tikz{
+	\node[draw, rectangle, minimum width=5em, minimum height=3em] (a) at (0,0) {Agent};
+	\node[draw, rectangle, minimum width=5em, minimum height=3em] (e) at (6,0) {Environment};
+	\node[draw, rectangle, minimum width=5em, minimum height=3em] (rm) at (3,-3) {Reward Machine};
+	\node at (0.8, -2.1) {$s_{t+1}$};
+
+	\graph[multi, grow right sep]{
+	(a) ->["$a_t$", bend left] (e);
+	(e) ->["$s_{t+1}$", bend left=40] (rm);
+	(rm) ->["$r_{t+1}$", bend left=20, swap] (a);
+	(rm) ->[bend left=40] (a);
+	(rm) ->["$u_{i_{t+1}}$", bend left=60] (a);
+	};
+	}
+	\caption{Diagram of the reinforcement learning feedback loop with a reward machine.}
+	\label{fig:rm_framework}
+\end{figure}
+
+Reward machines abstract events in the environment by using propositional symbols. For instance in our self-driving car example a propositional symbol could be \faHome\ for the destination, i.e. home, and \faShoppingCart\ for an intermediate destination, like a shopping center, while \faExclamationTriangle\ represents a traffic law violation.
+
+\usetikzlibrary{graphs, quotes}
+\begin{figure}[ht!]
+	\centering
+	\tikz{
+	\node[draw, rounded corners, fill=black] (s) at (0, 0) {};
+	\node[draw, rounded corners] (u0) at (0, -1) {$u_0$};
+	\node[draw, rounded corners] (u1) at (0, -3) {$u_1$};
+	\node[draw, rounded corners, fill=black] (t0) at (2, -2) {};
+	\node[draw, rounded corners, fill=black] (t1) at (0, -5) {};
+
+	\path (u0) edge[loop left] node {($\neg$\faShoppingCart$\wedge\neg$\faExclamationTriangle, 0)} (u0);
+	\path (u1) edge[loop left] node {($\neg$\faHome$\wedge\neg$\faExclamationTriangle, 0)} (u1);
+	\graph{
+	(s) -> (u0);
+	(u0) ->["(\faExclamationTriangle, 0)"] (t0);
+	(u0) ->["(\faShoppingCart$\wedge\neg$\faExclamationTriangle, 0)", swap] (u1);
+	(u1) ->["(\faExclamationTriangle, 0)", swap] (t0);
+	(u1) ->["(\faShoppingCart$\wedge\neg$\faExclamationTriangle, 0)", swap] (u1);
+	(u1) ->["(\faHome$\wedge\neg$\faExclamationTriangle, 1)", swap] (t1);
+	};
+	}
+	\caption{A simple reward machine describing a route for a self-driving car.}
+	\label{fig:rm}
+\end{figure}
+
+\textbf{Definition.}
+\emph{Given a set of propositional symbols $\mathcal{P}$, a (simple) \emph{reward machine (RM)} is a tuple $\mathcal{R}_\mathcal{P} = (U, u_0, F, \delta_u, \delta_r)$, where
+	\begin{itemize}
+		\item $U$ is a finite set of \emph{states}
+		\item $u_0 \in U$ is an \emph{initial state}
+		\item $F$ is a finite set of \emph{terminal states} s.t. $U \cap F = \emptyset$
+		\item $\delta_u$ is the \emph{state-transition function} $\delta_u : U \times 2^\mathcal{P} \to U \cup F$
+		\item $\delta_r$ is the \emph{state-reward function} $\delta_r : U \times 2^\mathcal{P} \to \mathbb{R}$
+	\end{itemize}}
+\cite{RM2022}
+
+Note that there is a more general version that assigns whole reward functions instead of just values, but this simpler version of a reward machine suffices for this work.
+
+Like in traditional reinforcement learning, where a Markov decision process (MDP) describes the feedback framework, we extend the MDP with a reward machine and a labelling function, which assigns truth values to the defined propositional symbols given the previous state, the agents action and the next state.
+
+\textbf{Definition.}
+\emph{A \emph{Markov decision process with a reward machine (MDPRM)} is a tuple $\mathcal{T} = (S, A, P, \gamma, \mathcal{R}_\mathcal{P}, L)$, where
+	\begin{itemize}
+		\item $S$, $A$, $P$ and $\gamma$ are defined as in an MDP
+		\item $\mathcal{R}_\mathcal{P}$ is a reward machine as defined above
+		\item $L$ is a \emph{labelling function} $L : S \times A \times S \to 2^\mathcal{P}$.
+	\end{itemize}}
+\cite{RM2022}
+
+In an MDPRM $\mathcal{T}$ the reward machine $\mathcal{R}_\mathcal{P}$ updates at each step of the agent. If the RM is in state $u_{i_t}$ and the agent performs action $a_t$ to move from state $s_t$ to $s_{t+1}$, then the RM moves to state $u_{t+1} = \delta_u(u_t, L(s_t, a_t, s_{t+1}))$ and the agent receives reward $\delta_r(u_t, L(s_t, a_t, s_{t+1}))$.
+
+In the running example with the reward machine from \ref{fig:rm} the RM starts in $u_0$. As long as the car has not reached its intermediate destination and has not violated any traffic laws, the RM remains in $u_0$. A traffic law violation transitions the RM to a terminal state with zero reward for the whole episode. Reaching the shopping center transitions the RM to state $u_1$. Upon arriving home safely, the RM terminates, rewarding the agent with a reward of 1.
+
+By exposing the reward machine's state to the agent, the framework allows the agent to learn a policy $\pi(a | (s,u))$ over pairs in $S \times U$ instead of just over $S$. An algorithms for learning such policies will be explored later.
+
+
+\section*{Goals of the Master's Thesis}
+
+\subsection*{Theorem: Construction of RMs}
+
+The first goal of the Master's thesis will be to explore the relationship between formal languages like Linear Temporal Logic (LTL) and reward machines, specifically demonstrating that any task specified using LTL can be represented as a reward machine.
+
+LTL is a formalism for specifying temporal properties and constraints in tasks, commonly used in domains like robotics and verification. Reward machines offer a compact and structured representation of task objectives and constraints, which can incorporate the same kinds of temporal properties specified by LTL. LTL is equivalent in expressiveness to Deterministic Finite Automata (DFA) over infinite sequences. A DFA is a finite-state machine that accepts or rejects sequences of symbols based on a deterministic transition function. Formal languages like regular expressions and other temporal logics are also equivalent to DFAs. Since reward machines are also finite-state machines these logics can be encoded as reward machines, making reward machines a sort of "lingua franca" for reward specification.
+
+A reward specification is a set temporal formulas associated to rewards $\{(r_1 : \phi_1), \dots, (r_n : \phi_n)\}$, which yields reward $r_i \in \mathbb{R}$ when formula $\phi_i$ holds. We will show that any LTL-based reward specification can be encoded as a reward machine.
+
+\textbf{Theorem.}
+\emph{Let $R = \{(r_1 : \phi_1), \dots, (r_n : \phi_n)\}$ be a reward specification, where each $\phi_i$ can be transformed into a DFA. Then there exists a reward machine $\mathcal{R}_\mathcal{P}$ that induces the same reward function as $R$.}
+\cite{LTL2019}
+
+\subsection*{Theorem: Convergence of CRM}
+
+To exploit the reward specification provided by a reward machine in the learning process of an agent, we can update the policy by considering the experiences of all possible RM states given the current environment state $s$, action $a$ and next state $s$. These are called counterfactual experiences because they simulate how the agent would have behaved if the RM were in a different state. By leveraging these counterfactual updates, we can efficiently utilize the structure of the RM to accelerate learning. This process is formalized in the algorithm (CRM) below. Note that in the algorithm below the update $x \overset{\alpha}{\gets} y$ is defined as $x \gets x + \alpha \cdot (y - x)$.
+
+\begin{algorithm}[ht!]
+	\textbf{Algorithm.}
+	Q-learning with counterfactual experiences for RM (CRM) \cite{RM2022}
+	\begin{algorithmic}[1]
+		\Require MDPRM $(S, A, P, \gamma, \mathcal{R}_\mathcal{P}, L)$ with RM $\mathcal{R}_\mathcal{P} = (U, u_0, F, \delta_u, \delta_r)$, initial environment state $s_0$, learning rate $\alpha \in (0,1]$, exploration probability $\eps \in (0, 1]$ and number of episodes $n \in \mathbb{N}$.
+		\State For all $s \in S$, $u \in U$ and $a \in A$ initialize $\tilde{q}(s, u, a)$ arbitrarily.
+		\For{$i \gets 0$  to $n$}
+		\State $u \gets u_0$ and $s \gets s_0$
+		\While{$s$ is not terminal and $u \notin F$}
+		\State Choose $\eps$-greedy action $a$ from $(s, u)$
+		\State Take action $a$ and observe next state $s'$
+		\For{$\tilde{u} \in U$}
+		\State $\tilde{r} \gets \delta_r(\tilde{u}, L(s,a,s'))$ and $\tilde{u}' \gets \delta_u(\tilde{u}, L(s,a,s'))$
+		\If{$s'$ is terminal or $\tilde{u} \in F$}
+		\State $\tilde{q}(s, \tilde{u}, a) \overset{\alpha}{\gets} \tilde{r}$
+		\Else
+		\State $\tilde{q}(s, \tilde{u}, a) \overset{\alpha}{\gets} \tilde{r} + \gamma \cdot \max_{a' \in A} \tilde{q}(s', \tilde{u}', a')$
+		\EndIf
+		\EndFor
+		\State $s \gets s'$ and $u \gets \delta_u(u, L(s,a,s'))$
+		\EndWhile
+		\EndFor
+	\end{algorithmic}
+\end{algorithm}
+
+\textbf{Theorem.}
+\emph{Given an MDPRM $\mathcal{T}$, CRM with tabular Q-learning converges to an optimal policy for $\mathcal{T}$ in the limit as long as every state-action pair is visited infinitely often.}
+\cite{RM2022}
+
+The second goal in this thesis will be to prove the convergence of standard tabular Q-learning and then show how CRM as an extension also converges.
+
+The CRM algorithm is not limited to tabular Q-learning. It can be extended to more modern reinforcement learning techniques, such as Deep Q-Networks (DQN) and Deep Deterministic Policy Gradient (DDPG). In these cases, the state-action value function $\tilde{q}(s, u, a)$ is replaced by a neural network to approximate the value function.
+
+
+\subsection*{Comparison: CRM vs. Q-Learning}
+
+A third goal of this thesis is to gain practical experience with reward machines by comparing the CRM algorithm to traditional Q-learning in a simple grid-based environment. This comparisong will help highlight the benefits of CRM in terms of learning efficiency, convergence speed and policy quality when leveraging the RM based reward specification. Furthermore it will show the ease of use of specifying rewards using LTL.
+
+If time permits, the study will extend this comparison to continuous state-action spaces by examining CRM's extension to DDPG. By incorporating reward machines into the policy gradient framework, the goal will be to evaluate wheter CRM maintains its advantages in more complex settings. A potential task to compare on could be that of autonomous driving in a simplified scenario, such as reaching a destination while adhering to traffic rules.
+
+
+\section*{Outlook}
+
+The reward machine framework is a powerful tool for integrating task structure into reinforcement learning. However the field is still evolving and recent extensions have opened new avenues for exploration. So a fourth goal of this thesis is to review these advencements and also consider potential new dircetion for future research.
+
+A list of papers that build upon the reward machine framework we outlined here:
+\begin{itemize}
+	\item Recent work \cite{SP2019} explores how reward machines can be integrated with symbolic planning techniques to solve tasks requiring high-level reasoning and decision-making.
+	\item Reward machines have been extended to handle partially observable settings, where the agent does not have full access to the environment's state. \cite{PORL2019}
+	\item They have also been applied to vision-based robotic tasks, where they augment DQN for more dense rewards and thus achieving a more robust policy with higher success rates, while still requiring fewer training steps. \cite{Vision2021}
+	\item Handling environments with uncertanty and noise in rewards is another active area of research. Recent methods \cite{Noisy2022} propose robust reward machines to cope with imperfect feedback. Similarly \cite{Stochastic2022} develop stochastic reward machines that are learned via constraint solving.
+	\item In another work a formalism has been proposed that endows RMs the ability to call other RMs, thus building a hierarchy of RMs and exploiting this in the learning process, which leads to faster convergence. \cite{Hierarchies2023}
+\end{itemize}
+
+Possible new directions:
+\begin{itemize}
+	\item Optimize a reward machine like DFA minimization to reduce the state space while still being equivalent to the reward specification.
+	\item Learn optimal rewards for a reward machine adaptively based on agent performance or infer optimal reward by observing successful behaviors. In \cite{LTL2019} and \cite{RM2022} there has been some work in this regard using value iteration to shape the existing rewards.
+	\item Extending reward machines to incorporate a stack-based memory structure, akin to pushdown automata, could enable agents to handle tasks requiring context-sensitive decision-making. Furthermore investigating whether a reward machine framework could be extended to a Turing-complete model would be interesting.
+	\item Translating task specifications directly from natural language into reward machines presents another interesting angle of research.
+\end{itemize}
+
+\printbibliography
+
+\end{document}
