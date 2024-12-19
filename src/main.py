@@ -1,65 +1,86 @@
-import sys
+import minigrid
+import numpy as np
+from matplotlib import pyplot as plt
 
-import pygame
+from agent import QLearner, RMLearner
+from envs.doorkey import RMDoorKey
+from rm import RM
+from train import train_QLearner, train_RMLearner
 
-from models import Car, Human, Pothole, State
-from config import (
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-    WORLD_HEIGHT,
-    WORLD_WIDTH,
-    TITLE_CAPTION,
-    FPS,
-    BLACK,
-    WHITE,
-)
+minigrid.__version__  # just so import does not get removed from formatter
+
+EPISODES = 1000
+ROLLING_LENGTH = 100
 
 
-pygame.init()
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption(TITLE_CAPTION)
-clock = pygame.time.Clock()
-
-player = Human((0, 0), 0)
-# TODO: create obstacles: pothole? crosswalk? cars? cyclists?
-# generate random potholes on the street at game start
-# generate random crosswalkers
-# generate random cars from a few different pre defined paths at start of game
-# make sure not to spawn them on top of the player
-# TODO: what about collisions between them?
-pothole = Pothole((0, 0))
-car = Car([(0, 0), (2000, 0), (2000, 1500)])
-
-
-def main():
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-        # TODO: calculate collision, when exactly?
-        state = State(pygame.key.get_pressed(), screen)
-
-        pothole.update(state)
-        car.update(state)
-
-        player.update(state)
-        camera = player.get_camera()
-
-        screen.fill(BLACK)
-        # TODO: draw cars carpet
-        pygame.draw.rect(
-            screen, WHITE, (-camera[0], -camera[1], WORLD_WIDTH, WORLD_HEIGHT)
+def plot_compact(
+    data: dict[str, tuple[list[float], list[float], list[int]]],
+    rolling_length: int = 100,
+) -> None:
+    fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
+    for name, (errors, rewards, steps) in data.items():
+        errors = (
+            np.convolve(errors, np.ones(rolling_length), mode="same") / rolling_length
         )
-
-        pothole.draw(screen, camera)
-        car.draw(screen, camera)
-        player.draw(screen, camera)
-
-        pygame.display.update()
-        clock.tick(FPS)
+        rewards = (
+            np.convolve(rewards, np.ones(rolling_length), mode="valid") / rolling_length
+        )
+        steps = (
+            np.convolve(steps, np.ones(rolling_length), mode="same") / rolling_length
+        )
+        axs[0].set_title("Training error per episode")
+        axs[0].plot(errors)
+        axs[1].set_title("Total rewards per episode")
+        axs[1].plot(rewards)
+        axs[2].set_title("Episode length")
+        axs[2].plot(steps, label=name)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    env = RMDoorKey(render_mode="rgb_array")
+    rm = RM.from_file("doorkey.txt")
+
+    qlearner = QLearner(n_actions=env.action_space.n, epsilon=1, epsilon_decay=0.995)
+    rmlearner = RMLearner(n_actions=env.action_space.n)
+
+    print("Training Q Learner:")
+    qerrors, qrewards, qsteps = train_QLearner(
+        qlearner, env.unwrapped, episodes=EPISODES, report_each=ROLLING_LENGTH
+    )
+    print("\nTraining RM Learner:")
+    rmerrors, rmrewards, rmsteps = train_RMLearner(
+        rmlearner, env.unwrapped, rm, episodes=EPISODES, report_each=ROLLING_LENGTH
+    )
+
+    plot_compact(
+        {
+            "Q-learning": (qerrors, qrewards, qsteps),
+            "CRM": (rmerrors, rmrewards, rmsteps),
+        },
+        rolling_length=ROLLING_LENGTH,
+    )
+
+    # plt.plot(index, qerrors, label="Q-learning")
+    # plt.plot(index, rmerrors, label="CRM")
+    # plt.xlabel("episode")
+    # plt.ylabel("temporal difference errors")
+    # plt.show()
+    #
+    # plt.plot(index, qrewards, label="Q-learning")
+    # plt.plot(index, rmrewards, label="CRM")
+    # plt.xlabel("episode")
+    # plt.ylabel("total reward")
+    # plt.show()
+    #
+    # plt.plot(index, qsteps, label="Q-learning")
+    # plt.plot(index, rmsteps, label="CRM")
+    # plt.xlabel("episode")
+    # plt.ylabel("steps")
+    # plt.show()
+
+    # TODO: save figures using https://github.com/nschloe/tikzplotlib
+
+    # test_Qlearner(qlearner, env)

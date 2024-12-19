@@ -6,8 +6,9 @@ import minigrid
 from matplotlib import pyplot as plt
 
 from agent import QLearner
+from env import RMEnv
 
-minigrid.__version__  # just so import does not get removed
+minigrid.__version__  # just so import does not get removed from formatter
 
 # make rm and rmwrapper class, see rm.py
 # add "get_events" method to relevant environments from minigrid
@@ -35,7 +36,42 @@ def observation_to_state(observation) -> int:
     return int(hashed.hexdigest(), 16)
 
 
-def train_agent_on_minigrid(
+def train_rm_agent(
+    agent: RMLearner, env: RMEnv, episodes: int = 1000
+) -> tuple[list[float], list[int]]:
+    episode_rewards = []
+    episode_lengths = []
+    for episode in range(episodes):
+        observation, _ = env.reset()
+        state = observation_to_state(observation)
+        total_reward = 0.0
+        steps = 0
+        terminated = truncated = False
+
+        while not (terminated or truncated):
+            action = agent.get_action(state, explore=True)
+
+            next_observation, reward, terminated, truncated, _ = env.step(action)
+            next_state = observation_to_state(next_observation)
+            agent.update(state, action, float(reward), next_state)
+
+            state = next_state
+            total_reward += float(reward)
+            steps += 1
+
+        agent.decay_epsilon()
+        episode_rewards.append(total_reward)
+        episode_lengths.append(steps)
+        if (episode + 1) % 100 == 0:
+            print(
+                f"episode {episode+1}: total reward = {total_reward}, steps = {steps}, epsilon = {agent.epsilon}"
+            )
+
+    env.close()
+    return episode_rewards, episode_lengths
+
+
+def train_qlearner(
     agent: QLearner, env_name: str, episodes: int = 1000
 ) -> tuple[list[float], list[int]]:
     env = gym.make(env_name)
@@ -71,7 +107,7 @@ def train_agent_on_minigrid(
     return episode_rewards, episode_lengths
 
 
-def test_agent(agent: QLearner, env_name: str) -> None:
+def test_qlearner(agent: QLearner, env_name: str) -> None:
     env = gym.make(env_name, render_mode="human")
     observation, _ = env.reset(seed=0)
     state = observation_to_state(observation)
@@ -92,9 +128,7 @@ if __name__ == "__main__":
     #     weights: dict[int, list[float]] = pickle.load(file)
 
     agent = QLearner(n_actions=7)
-    rewards, steps = train_agent_on_minigrid(
-        agent, "MiniGrid-DoorKey-5x5-v0", episodes=2000
-    )
+    rewards, steps = train_qlearner(agent, "MiniGrid-DoorKey-5x5-v0", episodes=2000)
     with open("weights.pkl", "wb") as file:
         pickle.dump(agent.weights, file)
 
@@ -105,4 +139,4 @@ if __name__ == "__main__":
     plt.xlabel("episode")
     plt.show()
 
-    test_agent(agent, "MiniGrid-DoorKey-5x5-v0")
+    test_qlearner(agent, "MiniGrid-DoorKey-5x5-v0")

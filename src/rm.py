@@ -1,5 +1,12 @@
 import re
+from collections import defaultdict
 from dataclasses import dataclass
+
+State = tuple[int, int]
+Reward = float
+Terminal = bool
+Props = dict[str, bool]
+CRM_Info = dict[State, tuple[State, Reward, Terminal]]
 
 
 def extract_variables(formula: str) -> set[str]:
@@ -7,13 +14,13 @@ def extract_variables(formula: str) -> set[str]:
 
 
 def parse_formula(formula: str) -> str:
-    formula = re.sub(r"\b!\b", "not ", formula)
-    formula = re.sub(r"\b&\b", "and ", formula)
-    formula = re.sub(r"\b|\b", "or ", formula)
+    formula = re.sub(r"(?<!\w)!(\w+)", r" not \1", formula)
+    formula = re.sub(r"&", " and ", formula)
+    formula = re.sub(r"\|", " or ", formula)
     return formula
 
 
-def evaluate_formula(formula: str, variables: dict[str, bool]) -> bool:
+def evaluate_formula(formula: str, variables: Props) -> bool:
     try:
         # WARN: can execute arbitrary code
         # TODO: make custom evaluator
@@ -32,8 +39,8 @@ class RM:
         states_set: set[int] = set()
         terminals_set: set[int] = set()
         variables: set[str] = set()
-        self.delta_u: dict[int, dict[int, str]] = {}
-        self.delta_r: dict[int, dict[int, float]] = {}
+        self.delta_u: dict[int, dict[int, str]] = defaultdict(dict)
+        self.delta_r: dict[int, dict[int, float]] = defaultdict(dict)
 
         for u1, u2, formula, reward in transitions:
             states_set.add(u1)
@@ -55,7 +62,7 @@ class RM:
         with open(filename, "r") as file:
             lines = file.readlines()
 
-        # WARN: can executre arbitrary code
+        # WARN: can execute arbitrary code
         # TODO: create custom DSL and parser
         transitions: list[tuple[int, int, str, float]] = [eval(line) for line in lines]
 
@@ -67,14 +74,14 @@ class RM:
     def get_states(self) -> list[int]:
         return self.states
 
-    def get_bitmask(self, props: dict[str, bool]) -> int:
+    def get_bitmask(self, props: Props) -> int:
         bitmask = 0
         for i, (prop, val) in enumerate(props.items()):
             if val and prop in self.variables:
                 bitmask |= 1 << i
         return bitmask
 
-    def next_state(self, u1: int, props: dict[str, bool]) -> int:
+    def next_state(self, u1: int, props: Props) -> int:
         bitmask = self.get_bitmask(props)
         u2 = self.transitions.get((u1, bitmask))
         if u2 is None:
@@ -82,7 +89,7 @@ class RM:
             self.transitions[(u1, bitmask)] = u2
         return u2
 
-    def compute_next_state(self, u1: int, props: dict[str, bool]) -> int:
+    def compute_next_state(self, u1: int, props: Props) -> int:
         for u2 in self.delta_u[u1]:
             if evaluate_formula(self.delta_u[u1][u2], props):
                 return u2
@@ -93,9 +100,26 @@ class RM:
     def get_reward(self, u1: int, u2: int) -> float:
         return self.delta_r[u1][u2]
 
-    def step(self, u1: int, props: dict[str, bool]) -> tuple[int, float, bool]:
+    def get_crm(self, s1: int, s2: int, props: Props) -> CRM_Info:
+        crm_info: CRM_Info = dict()
+        for u1 in self.states:
+            u2 = self.next_state(u1, props)
+            r = self.get_reward(u1, u2)
+            done = u2 in self.terminal_states
+            crm_info[(u1, s1)] = ((u2, s2), r, done)
+        return crm_info
+
+    def step(
+        self,
+        state: tuple[int, int],
+        next_env_state: int,
+        props: Props,
+    ) -> tuple[State, float, bool, CRM_Info]:
+        s1, u1 = state
         assert u1 not in self.terminal_states, "Expected non-terminal state."
         u2 = self.next_state(u1, props)
+        next_state = (next_env_state, u2)
         reward = self.get_reward(u1, u2)
         done = u2 in self.terminal_states
-        return u2, reward, done
+        crm_info = self.get_crm(s1, next_env_state, props)
+        return next_state, reward, done, crm_info

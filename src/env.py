@@ -1,10 +1,10 @@
-from gymnasium import Env
-from gymnasium.core import ActType, ObsType
+from typing import Any, Protocol
 
 
-class RMMixin:
-    def get_events(self) -> dict[str, bool]: ...
-
-
-class RMEnv(Env[ObsType, ActType], RMMixin):
-    pass
+class RMMiniGridEnv(Protocol):
+    def reset(
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
+    ) -> tuple[int, dict[str, bool]]: ...
+    def step(self, action: int) -> tuple[int, float, bool, bool, dict[str, bool]]: ...
+    def close(self) -> None: ...
+    def render(self) -> None: ...

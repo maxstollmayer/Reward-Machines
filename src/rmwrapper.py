@@ -11,7 +11,7 @@ from rm import RM
 class RMWrapper(Wrapper[Any, Any, Any, Any]):
     # https://github.com/RodrigoToroIcarte/reward_machines/blob/master/reward_machines/reward_machines/rm_environment.py
 
-    def __init__(self, env: RMEnv, reward_machines: list[RM]) -> None:
+    def __init__(self, env: RMEnv[Any, Any], reward_machines: list[RM]) -> None:
         super().__init__(env)
         self.rms: list[RM] = reward_machines
         self.num_rm_states: int = sum([len(rm.get_states()) for rm in reward_machines])
