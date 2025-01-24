@@ -1,17 +1,16 @@
-from dataclasses import dataclass
-import pygame
 import math
+from dataclasses import dataclass
 
+import pygame
 from config import (
     ACCELERATION,
     CAR_LENGTH,
     CAR_WIDTH,
+    FRICTION,
     MAX_SPEED,
     SCREEN_CENTER,
-    FRICTION,
     TURNING_ANGLE,
 )
-
 
 Num = int | float
 Vec = pygame.math.Vector2

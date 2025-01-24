@@ -3,15 +3,18 @@
 *.fls
 *.aux
 *.bbl
+*.bbl-SAVE-ERROR
 *.bcf
+*.bcf-SAVE-ERROR
 *.blg
 *.out
 *.xml
 *.gz
 *.toc
-*.bbl-SAVE-ERROR
-*.bcf-SAVE-ERROR
+*__pycache__/
 .venv/
-*/__pycache__/
 pyrightconfig.json
+data/
+paper/BSPW1E*
+paper/BSPW2*
 

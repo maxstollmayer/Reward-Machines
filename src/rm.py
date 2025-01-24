@@ -24,7 +24,7 @@ def evaluate_formula(formula: str, variables: Props) -> bool:
     try:
         # WARN: can execute arbitrary code
         # TODO: make custom evaluator
-        return eval(formula, {}, variables)
+        return bool(eval(formula, {}, variables))
     except Exception as e:
         raise ValueError(f"Invalid formula: '{formula}'. Error: {e}")
 
@@ -106,7 +106,7 @@ class RM:
             u2 = self.next_state(u1, props)
             r = self.get_reward(u1, u2)
             done = u2 in self.terminal_states
-            crm_info[(u1, s1)] = ((u2, s2), r, done)
+            crm_info[(s1, u1)] = ((s2, u2), r, done)
         return crm_info
 
     def step(

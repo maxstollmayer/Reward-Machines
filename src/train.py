@@ -28,15 +28,16 @@ def train_QLearner(
     steps = []
     for episode in range(episodes):
         state, _ = env.reset()
-        terminated = truncated = False
+        done = False
         total_reward = 0
         length = 0
 
-        while not (terminated or truncated):
+        while not done:
             action = agent.get_action(state, explore=True)
 
             next_state, reward, terminated, truncated, _ = env.step(action)
-            agent.update(state, action, reward, terminated or truncated, next_state)
+            done = terminated or truncated
+            agent.update(state, action, reward, done, next_state)
             state = next_state
             total_reward += reward
             length += 1
@@ -94,7 +95,7 @@ def train_RMLearner(
         while not done:
             action = agent.get_action(state, explore=True)
 
-            next_env_state, *_, info = env.step(action)
+            next_env_state, _reward, _terminated, _truncated, info = env.step(action)
             next_state, reward, done, crm_info = rm.step(state, next_env_state, info)
             agent.update(action, crm_info)
             total_reward += reward

@@ -11,7 +11,7 @@ class RMLearner:
     alpha: float = 0.1
     gamma: float = 0.95
     epsilon: float = 1.0
-    epsilon_decay: float = 0.995
+    epsilon_decay: float = 0.9977
     min_epsilon: float = 0.1
     weights: dict[tuple[int, int], list[float]] = field(default_factory=dict)
     td_errors: list[float] = field(default_factory=list)
@@ -58,7 +58,7 @@ class RMLearner:
         terminal: bool,
     ) -> None:
         q = self.get_q(state, action)
-        future_q: float = (not terminal) * np.max(self.get_row(next_state))
+        future_q: float = np.max(self.get_row(next_state)) * (not terminal)
         td_target = reward + self.gamma * future_q
         new_q = (1 - self.alpha) * q + self.alpha * td_target
         self.set_q(state, action, new_q)
@@ -82,7 +82,7 @@ class QLearner:
     alpha: float = 0.1
     gamma: float = 0.95
     epsilon: float = 1.0
-    epsilon_decay: float = 0.995
+    epsilon_decay: float = 0.9977
     min_epsilon: float = 0.1
     weights: dict[int, list[float]] = field(default_factory=dict)
     td_errors: list[float] = field(default_factory=list)
@@ -126,7 +126,7 @@ class QLearner:
         # update q value using Bellman equation
         q = self.get_q(state, action)
         # TODO: why better performance without `not terminal`?
-        future_q: float = (not terminal) * np.max(self.get_row(next_state))
+        future_q: float = np.max(self.get_row(next_state)) * (not terminal)
         td_target = reward + self.gamma * future_q
         new_q = (1 - self.alpha) * q + self.alpha * td_target
         self.set_q(state, action, new_q)
