@@ -6,7 +6,7 @@ import scienceplots
 from matplotlib import pyplot as plt
 
 scienceplots.__path__
-plt.style.use(["science", "bright"])
+plt.style.use(["science", "bright", "grid"])
 
 ALGS = ["q", "crm"]
 
@@ -54,15 +54,18 @@ def get_avgs(data: dataset, runs: int) -> dict[str, datarun]:
 
 def plot(data: dict[str, datarun], runs: int, size: int, end: int) -> None:
     fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
-    axs[0].set_title("Training error per episode")
-    axs[1].set_title("Reward per episode")
-    axs[2].set_title("Episode length")
     for i, (alg, arr) in enumerate(data.items()):
         axs[0].plot(arr[0][:end], color=f"C{i}")
         axs[1].plot(arr[1][:end], color=f"C{i}")
         axs[2].plot(arr[2][:end], color=f"C{i}", label=alg)
+    axs[0].set_xlabel("episode")
+    axs[1].set_xlabel("episode")
+    axs[2].set_xlabel("episode")
+    axs[0].set_ylabel("training error")
+    axs[1].set_ylabel("total reward")
+    axs[2].set_ylabel("steps")
     axs[2].legend()
-    fig.suptitle(f"Averages over {runs} runs")
+    fig.suptitle(f"Averages over {runs} runs on {size}x{size} doorkey grid environment")
     fig.savefig(f"figures/fig_{runs}runs_{size}x{size}.png")
     fig.savefig(f"figures/fig_{runs}runs_{size}x{size}.pgf")
     fig.savefig(f"figures/fig_{runs}runs_{size}x{size}.pdf")

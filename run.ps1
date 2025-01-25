@@ -2,7 +2,7 @@ param (
     [int]$runs = 10,
     [int]$size = 5,
     [int]$episodes = 1010,
-    [int]$rolling_length = 10,
+    [int]$end = -1,
     [string]$folder = "data"
 )
 
@@ -30,7 +30,7 @@ for ($i = 1; $i -le $runs; $i++) {
 
 Write-Host "`nFinished running algorithms. Generating plot."
 
-& python "src/plot.py" -n $runs -s $size -r $rolling_length -f $folder
+& python "src/plot.py" -n $runs -s $size -e $end -f $folder
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "`nERROR: plot.py failed."
