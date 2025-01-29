@@ -13,7 +13,7 @@ function Run-Alg {
     )
     & python "src/run.py" $alg -s $size -e $episodes -x $i -f $folder
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "`nERROR: run.py failed on iteration $i of algorithm $alg."
+        Write-Error "`run.py failed on iteration $i of algorithm $alg."
         exit $LASTEXITCODE
     }
 }
@@ -33,7 +33,7 @@ Write-Host "`nFinished running algorithms. Generating plot."
 & python "src/plot.py" -n $runs -s $size -e $end -f $folder
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "`nERROR: plot.py failed."
+    Write-Error "plot.py failed."
     exit $LASTEXITCODE
 }
 
