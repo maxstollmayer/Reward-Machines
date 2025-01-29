@@ -1,10 +1,11 @@
 import argparse
-import pickle
+import json
+from typing import NamedTuple
 
 from agent import QLearner, RMLearner
 from envs.doorkey import RMDoorKey
 from rm import RM
-from train import train_QLearner, train_RMLearner
+from train import test_QLearner, test_RMLearner, train_QLearner, train_RMLearner
 
 VERBOSE = False
 ALPHA = 0.1
@@ -14,7 +15,23 @@ EPSILON_DECAY = 0.995
 MIN_EPSILON = 0.01
 
 
-def get_args() -> tuple[str, int, int, int, str, str]:
+class Run(NamedTuple):
+    errors: list[float]
+    rewards: list[float]
+    steps: list[int]
+    test_steps: int
+
+
+class Args(NamedTuple):
+    alg: str
+    size: int
+    max_steps: int
+    episodes: int
+    suffix: str
+    folder: str
+
+
+def get_args() -> Args:
     parser = argparse.ArgumentParser(
         description="Run the experiment once using different parameters."
     )
@@ -49,7 +66,7 @@ def get_args() -> tuple[str, int, int, int, str, str]:
         "-f", "--folder", type=str, default="data", help="folder to store the data in"
     )
     args = parser.parse_args()
-    return (
+    return Args(
         args.algorithm,
         args.size,
         args.max_steps,
@@ -59,9 +76,7 @@ def get_args() -> tuple[str, int, int, int, str, str]:
     )
 
 
-def run_q(
-    size: int, max_steps: int, episodes: int
-) -> tuple[list[float], list[float], list[int]]:
+def run_q(size: int, max_steps: int, episodes: int) -> Run:
     env = RMDoorKey(size=size, max_steps=max_steps)
     learner = QLearner(
         n_actions=env.action_space.n,
@@ -71,14 +86,14 @@ def run_q(
         epsilon_decay=EPSILON_DECAY,
         min_epsilon=MIN_EPSILON,
     )
-    return train_QLearner(learner, env, episodes=episodes, verbose=VERBOSE)
+    training_data = train_QLearner(learner, env, episodes=episodes, verbose=VERBOSE)
+    testing_data = test_QLearner(learner, env)
+    return Run(*training_data, testing_data)
 
 
-def run_rm(
-    size: int, max_steps: int, episodes: int
-) -> tuple[list[float], list[float], list[int]]:
+def run_rm(size: int, max_steps: int, episodes: int) -> Run:
     env = RMDoorKey(size=size, max_steps=max_steps)
-    rm = RM.from_file("doorkey.txt")
+    rm = RM.from_file("src/envs/doorkey.txt")
     learner = RMLearner(
         n_actions=env.action_space.n,
         alpha=ALPHA,
@@ -87,12 +102,16 @@ def run_rm(
         epsilon_decay=EPSILON_DECAY,
         min_epsilon=MIN_EPSILON,
     )
-    return train_RMLearner(learner, env, rm, episodes=episodes, verbose=VERBOSE)
+    training_data = train_RMLearner(
+        learner, env, rm, episodes=episodes, verbose=VERBOSE
+    )
+    testing_data = test_RMLearner(learner, env, rm)
+    return Run(*training_data, testing_data)
 
 
-def save_data(data: tuple[list[float], list[float], list[int]], filename: str) -> None:
-    with open(filename, "wb") as file:
-        pickle.dump(data, file)
+def save_data(data: Run, filename: str) -> None:
+    with open(filename, "w") as file:
+        json.dump(data, file)
 
 
 def main() -> None:
@@ -103,7 +122,7 @@ def main() -> None:
     else:
         data = run_rm(size, max_steps, episodes)
 
-    save_data(data, f"{folder}/{alg}_{size}x{size}_{suffix}.pkl")
+    save_data(data, f"{folder}/{alg}_{size}x{size}_{suffix}.json")
 
 
 if __name__ == "__main__":

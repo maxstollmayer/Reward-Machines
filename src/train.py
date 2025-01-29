@@ -1,4 +1,3 @@
-import numpy as np
 from gymnasium.wrappers import HumanRendering
 
 from agent import QLearner, RMLearner
@@ -16,63 +15,6 @@ IDX_TO_ACTION = {
 }
 
 
-def train_QLearner(
-    agent: QLearner,
-    env: RMMiniGridEnv,
-    episodes: int = 1000,
-    report_each: int = 100,
-    verbose: bool = True,
-) -> tuple[list[float], list[float], list[int]]:
-    td_errors = []
-    total_rewards = []
-    steps = []
-    for episode in range(episodes):
-        state, _ = env.reset()
-        done = False
-        total_reward = 0
-        length = 0
-
-        while not done:
-            action = agent.get_action(state, explore=True)
-
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
-            agent.update(state, action, reward, done, next_state)
-            state = next_state
-            total_reward += reward
-            length += 1
-
-        td_error = np.sum(agent.td_errors[-length:]) / length
-        td_errors.append(td_error)
-        total_rewards.append(total_reward)
-        steps.append(length)
-
-        if episode % report_each == 0:
-            if verbose:
-                print(
-                    f"episode {episode:4}: error={td_error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
-                )
-
-        agent.decay_epsilon()
-
-    env.close()
-    return td_errors, total_rewards, steps
-
-
-def test_Qlearner(agent: QLearner, env: RMMiniGridEnv) -> None:
-    env = HumanRendering(env)
-    state, _ = env.reset(seed=0)
-    terminated = truncated = False
-
-    while not (terminated or truncated):
-        action = agent.get_action(state, explore=False)
-        print(IDX_TO_ACTION[action])
-        state, _, terminated, truncated, _ = env.step(action)
-        env.render()
-
-    env.close()
-
-
 def train_RMLearner(
     agent: RMLearner,
     env: RMMiniGridEnv,
@@ -81,9 +23,9 @@ def train_RMLearner(
     report_each: int = 100,
     verbose: bool = True,
 ) -> tuple[list[float], list[float], list[int]]:
-    td_errors = []
-    total_rewards = []
-    steps = []
+    errors: list[float] = []
+    rewards: list[float] = []
+    steps: list[int] = []
     for episode in range(episodes):
         env_state, _ = env.reset()
         u = rm.reset()
@@ -102,18 +44,113 @@ def train_RMLearner(
             length += 1
             state = next_state
 
-        td_error = np.sum(agent.td_errors[-length:]) / length
-        td_errors.append(td_error)
-        total_rewards.append(total_reward)
+        error = sum(agent.errors[-length:]) / length
+        errors.append(error)
+        rewards.append(total_reward)
         steps.append(length)
 
         if episode % report_each == 0:
             if verbose:
                 print(
-                    f"episode {episode:4}: error={td_error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
+                    f"episode {episode:4}: error={error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
                 )
 
         agent.decay_epsilon()
 
     env.close()
-    return td_errors, total_rewards, steps
+    return errors, rewards, steps
+
+
+def test_RMLearner(
+    agent: RMLearner,
+    env: RMMiniGridEnv,
+    rm: RM,
+    render: bool = False,
+    verbose: bool = False,
+) -> int:
+    if render:
+        env = HumanRendering(env)
+    env_state, _ = env.reset(seed=0)
+    u = rm.reset()
+    state = (env_state, u)
+    done = False
+    steps = 0
+
+    while not done:
+        action = agent.get_action(state, explore=False)
+        next_env_state, _, _, _, info = env.step(action)
+        state, _, done, _ = rm.step(state, next_env_state, info)
+        steps += 1
+        if verbose:
+            print(IDX_TO_ACTION[action])
+        if render:
+            env.render()
+
+    env.close()
+    return steps
+
+
+def train_QLearner(
+    agent: QLearner,
+    env: RMMiniGridEnv,
+    episodes: int = 1000,
+    report_each: int = 100,
+    verbose: bool = True,
+) -> tuple[list[float], list[float], list[int]]:
+    errors: list[float] = []
+    rewards: list[float] = []
+    steps: list[int] = []
+    for episode in range(episodes):
+        state, _ = env.reset()
+        done = False
+        total_reward = 0
+        length = 0
+
+        while not done:
+            action = agent.get_action(state, explore=True)
+
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
+            agent.update(state, action, reward, done, next_state)
+            state = next_state
+            total_reward += reward
+            length += 1
+
+        error = sum(agent.errors[-length:]) / length
+        errors.append(error)
+        rewards.append(total_reward)
+        steps.append(length)
+
+        if episode % report_each == 0:
+            if verbose:
+                print(
+                    f"episode {episode:4}: error={error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
+                )
+
+        agent.decay_epsilon()
+
+    env.close()
+    return errors, rewards, steps
+
+
+def test_QLearner(
+    agent: QLearner, env: RMMiniGridEnv, render: bool = False, verbose: bool = False
+) -> int:
+    if render:
+        env = HumanRendering(env)
+    state, _ = env.reset(seed=0)
+    steps = 0
+    done = False
+
+    while not done:
+        action = agent.get_action(state, explore=False)
+        state, _, terminated, truncated, _ = env.step(action)
+        steps += 1
+        done = terminated or truncated
+        if verbose:
+            print(IDX_TO_ACTION[action])
+        if render:
+            env.render()
+
+    env.close()
+    return steps
