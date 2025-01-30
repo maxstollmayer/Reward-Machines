@@ -116,7 +116,7 @@ We run both the Q-Learning and CRM algorithm on the $5 \times 5$ DoorKey environ
 	\label{fig:5x5}
 \end{figure}
 
-As seen in figure \ref{fig:5x5} in roughly the first 500 episodes the training error fluctuates but settles close to 0 afterwards for both algorithms. Since the total reward can only be 0 or 1 in this case, it can be seen as a percentage of how many runs achieved the goal in that episode. Thus the Q-Learning converges slightly faster to the optimum than CRM contrary to our expectation. Even less pronounced is the advantage of Q-Learning in the number of steps. They both settle at about 10 steps to finding the exit in the end.
+As seen in figure \ref{fig:5x5} in roughly the first 500 episodes the training error fluctuates but settles close to 0 afterwards for both algorithms. Since the total reward can only be 0 or 1 in this case, it can be seen as a percentage of how many runs achieved the goal in that episode. Thus the Q-Learning converges slightly faster to the optimum than CRM contrary to our expectation. Even less pronounced is the advantage of Q-Learning in the number of steps. The best strategy found for both algorithms in these 100 runs takes 11 steps to the exit with only exploiting, which is also the median.
 
 \begin{figure}[ht!]
 	\centering
@@ -125,7 +125,7 @@ As seen in figure \ref{fig:5x5} in roughly the first 500 episodes the training e
 	\label{fig:6x6}
 \end{figure}
 
-A similar picture can be seen in figure \ref{fig:6x6} for the $6 \times 6$ environment, but needed 10 times more episodes to that of the $5 \times 5$ environment. The result is basically the same but with a little more variance. The steps it takes for the converged agents to find the exit is 17 for Q-Learning and 16 for CRM. So perhaps CRM finds a better strategy.
+A similar picture can be seen in figure \ref{fig:6x6} for the $6 \times 6$ environment, but needed 10 times more episodes to that of the $5 \times 5$ environment. The result is basically the same but with a little more variance. The best strategy for the converged agents takes 14 steps to the exit in both cases, although the median is 18 for Q-Learning and 17 for CRM.
 
 \section*{Conclusion}
 
