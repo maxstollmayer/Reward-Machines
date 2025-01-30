@@ -35,7 +35,7 @@ class Avg(NamedTuple):
     errors: list[float]
     rewards: list[float]
     steps: list[float]
-    test_steps: float
+    test_steps: list[int]
 
 
 Data = dict[str, list[Run]]
@@ -94,8 +94,8 @@ def get_avgs(
         errors: list[float] = np.sum([run.errors for run in runs], axis=0) / n_runs
         rewards: list[float] = np.sum([run.rewards for run in runs], axis=0) / n_runs
         steps: list[float] = np.sum([run.steps for run in runs], axis=0) / n_runs
-        test_steps = sum([run.test_steps for run in runs]) / n_runs
-        dir[alg] = Avg(errors, rewards, steps, test_steps)
+        # test_steps = sum([run.test_steps for run in runs]) / n_runs
+        dir[alg] = Avg(errors, rewards, steps, [run.test_steps for run in runs])
     return dir
 
 
@@ -103,10 +103,18 @@ def print_result(avgs: Avgs, runs: int) -> None:
     episodes = len(avgs[ALGS[0]][0])
     n = max(len(alg) for alg in ALGS)
     print(
-        f"{runs} run average of steps of exploiting after training for {episodes} episodes:"
+        f"Number of steps in {runs} runs of exploiting after training for {episodes} episodes:"
     )
-    for alg, run in avgs.items():
-        print(f"{alg.ljust(n)}: {run.test_steps}")
+    print(" | ".join([" " * n, "best", "count", "median", " mean", "  std"]))
+    for alg, avg in avgs.items():
+        best_steps = np.min(avg.test_steps)
+        best_count = len([x for x in avg.test_steps if x == best_steps])
+        median_steps = int(np.median(avg.test_steps))
+        mean_steps = np.mean(avg.test_steps)
+        std_steps = np.std(avg.test_steps)
+        print(
+            f"{alg.rjust(n)} | {best_steps:4} | {best_count:5} | {median_steps:6} | {mean_steps:5} | {std_steps:5.2f}"
+        )
 
 
 def plot(avgs: Avgs, runs: int, size: int, end: int) -> None:
