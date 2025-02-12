@@ -1,0 +1,125 @@
+\documentclass[12pt, a4paper]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fontawesome5}
+\usepackage{dsfont}
+
+\usepackage{tikz}
+
+\usepackage[backend=biber, sorting=ynt]{biblatex}
+\addbibresource{sources.bib}
+
+\newcommand{\defn}[1]{\textbf{Definition.}\ \emph{#1}}
+\newcommand{\lem}[1]{\textbf{Lemma.}\\\emph{#1}}
+\newcommand{\thm}[1]{\textbf{Theorem.}\\\emph{#1}}
+\newcommand{\cor}[1]{\textbf{Corollary.}\\\emph{#1}}
+\newcommand{\prf}[1]{\textbf{Proof.}\\#1}
+
+\renewcommand{\phi}{\varphi}
+
+\title{Reward Machine Construction Writeup}
+\author{Maximilian Stollmayer}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Basic Definitions}
+
+\defn{
+	\emph{Propositional symbols} are statements that are either true or false. \emph{Formulas} over propositional symbols consist of combinations of them with operations $\neg$, $\wedge$, $\vee$, $\implies$ and $\iff$. We say a formula $\psi$ \emph{provable} from a formula $\phi$, if $\psi$ can be derived from $\phi$ and write $\phi \vdash \psi$.
+}
+
+In the following we will suppose that we are in a reinforcement learning setting with a finite set of states $S$, with $s_0$ being the initial state, a set $T \subseteq S$ of terminal states and a finite set of actions $A$. Furthermore we suppose that we have a finite set of propositional symbols $\mathcal{P}$.
+
+\defn{
+	A \emph{labeling function} $L : S \times A \times S \to 2^{\mathcal{P}}$ maps experiences to truth assigments over propositional symbols $\mathcal{P}$.
+}
+
+\defn{
+	A \emph{Non-Markovian Reward Decision Process (NMRDP)} is a tuple $(S, A, s_0, T, R, \gamma)$, where $S, A, s_0, T$ and $\gamma$ are defined as in a regular MDP and $R : (S \times A)^+ \times S \to \mathbb{R}$ is a non-Markovian reward function that maps finite state-action histories into a real value. Note that $X^+ := \bigcup_{n=1}^{\infty} X^n$ represents all non-empty finite sequences of a set $X$.
+}
+
+\section*{Reward Machines}
+
+\defn{
+	A \emph{Mealy machine} is a tuple $(U, u_0, \Sigma, \mathcal{R}, \delta, \rho)$, where
+	\begin{itemize}
+		\item $U$ is a finite set of states
+		\item $u_0 \in U$ is the initial state
+		\item $\Sigma$ is a finite input alphabet
+		\item $\mathcal{R}$ is a finite output alphabet
+		\item $\delta : U \times \Sigma \to U$ is the transition function
+		\item $\rho : U \times \Sigma \to \mathcal{R}$ is the output function
+	\end{itemize}
+}
+
+\defn{
+	A \emph{reward machine (RM)} is a Mealy machine $(U, u_0, \Sigma = 2^\mathcal{P}, \mathcal{R}, \delta, \rho)$, where $\mathcal{R}$ is a finite set of reward functions $S \times A \times S \to \mathbb{R}$.
+}
+
+\defn{
+	The non-Markovian reward function $R$ \emph{induced by an RM} $(U, u_0, 2^\mathcal{P}, \mathcal{R}, \delta, \rho)$ is
+	\begin{align*}
+		R : (S \times A)^+ \times S                       & \to \mathbb{R}                                                     \\
+		(s_0, a_0), \dots, (s_n, a_n), s_{n+1}            & \mapsto \rho\big(u_n, L(s_n, a_n, s_{n+1})\big)(s_n, a_n, s_{n+1}) \\
+		R\big((s_0, a_0), \dots, (s_n, a_n), s_{n+1}\big) & = r(s_n, a_n, s_{n+1})
+	\end{align*}
+	where $u_n = \delta\big(u_{n-1}, L(s_{n-1}, a_{n-1}, s_n)\big)$ is defined recursively with the base case being the initial state $u_0$.
+}
+
+\section*{Logics and Automata}
+
+ltl \& co, dfa, dfa construction theorem and proof (source?)
+
+\defn{
+	A \emph{deterministic finite automaton (DFA)} is a tuple $(U, u_0, \Sigma, \delta, F)$, where
+	\begin{itemize}
+		\item $U$ is a finite set of states
+		\item $u_0 \in U$ is the initial state
+		\item $\Sigma$ is a finite input alphabet
+		\item $\delta : U \times \Sigma \to U$ is the transition function
+		\item $F \subseteq U$ is a set of accepting states
+	\end{itemize}
+}
+
+\section*{Reward Specifications}
+
+\defn{
+	% WARN: R is also used for the RM induces non-Markovian reward function!!!
+	% TODO: maybe use hat or something (hat also used below)
+	% TODO: define regular language above?
+	A \emph{reward specification} is a set $R = \{(r_1, \phi_1), \dots, (r_N, \phi_N)\}$, where each $r_i \in \mathbb{R}$ and $\phi_i$ is a formula over the propositional symbols $\mathcal{P}$ expressed in some regular language.
+}
+
+\defn{
+	Let $\tau = \big( (s_0, a_0), \dots, (s_n, a_n), s_{n+1} \big)\in (S \times A)^+ \times S$ be a trace of experiences. We say that the projection of the experiences of $\tau$ by $L$ \emph{entails} a formula $\phi$, and write $\tau \vdash_L \phi$, if $L(s_0, a_0, s_1) \dots L(s_n, a_n, s_{n+1}) \vdash \phi$.
+}
+
+\defn{
+	The non-Markovian reward function $\hat{R}$ \emph{induced by the reward specification} $R = \{(r_1, \phi_1), \dots, (r_n, \phi_n)\}$ assigns reward $\hat{R}(\tau) := \sum_{k=1}^N \mathds{1}(\tau \vdash_L \phi_k)$ to a trace $\tau = \big( (s_0, a_0), \dots, (s_n, a_n), s_{n+1} \big) \in (S \times A)^+ \times S$.
+}
+
+\section*{Construction Theorem}
+
+\thm{
+	There exists a reward machine that induces the same non-Markovian reward function as a given reward specification $R = \{(r_1, \phi_1), \dots, (r_N, \phi_N)\}$.
+}
+
+\prf{
+	Let...
+}
+
+\cor{
+
+}
+
+\section*{Example}
+
+go through the construction of a very simple formula to reward machine
+
+\printbibliography
+
+\end{document}
