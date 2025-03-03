@@ -2,19 +2,33 @@
 
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{amsfonts}
 \usepackage{fontawesome5}
 \usepackage{dsfont}
+
+\usepackage{amsthm}
+\theoremstyle{plain}
+\newtheorem*{theorem}{Theorem}
+\newtheorem*{proposition}{Proposition}
+\newtheorem*{corollary}{Corollary}
+\newtheorem*{definition}{Definition}
 
 \usepackage{tikz}
 
 \usepackage[backend=biber, sorting=ynt]{biblatex}
 \addbibresource{sources.bib}
 
-\newcommand{\defn}[1]{\textbf{Definition.}\ \emph{#1}}
-\newcommand{\lem}[1]{\textbf{Lemma.}\\\emph{#1}}
-\newcommand{\thm}[1]{\textbf{Theorem.}\\\emph{#1}}
-\newcommand{\cor}[1]{\textbf{Corollary.}\\\emph{#1}}
-\newcommand{\prf}[1]{\textbf{Proof.}\\#1}
+\DeclareMathOperator{\true}{\top}
+\DeclareMathOperator{\false}{\bot}
+\DeclareMathOperator{\an}{\wedge}
+\DeclareMathOperator{\od}{\vee}
+\DeclareMathOperator{\imply}{\rightarrow}
+\DeclareMathOperator{\equivalent}{\leftrightarrow}
+\DeclareMathOperator{\nxt}{\bigcirc}
+\DeclareMathOperator{\until}{\textsf{U}}
+\DeclareMathOperator{\release}{\textsf{R}}
+\DeclareMathOperator{\eventually}{\Diamond}
+\DeclareMathOperator{\always}{\Box}
 
 \renewcommand{\phi}{\varphi}
 
@@ -27,72 +41,87 @@
 \maketitle
 
 \begin{itemize}
-	\item general problem of writing reward functions
+	\item general problem of reward specification
 	\item ltl and other logics
-	\item example with ltl and reward machine
-	\item construct büchli -> dfa and compare to reward machine
-	\item proof of dfa construction
-	\item proof of reward machine
+	\item example with ltl
+	\item from ltl to automaton
+	\item construct rm from automaton
+	\item conclusion and outlook
 \end{itemize}
 
 \section*{Reward Specification}
 
-Specifying the reward function, i.e. the rule that maps each state-action pair to a reward, is often a complex and error-prone process. In our self-driving car example from above, we would need to account for numerous cases to design rewards that encourage the agent to both achieve the primary task of reaching the destination and satisfy constraints like stopping for pedestrians, etc. Crafting a reward function that balances all these considerations can quickly become unmanagable as tasks increase in complexity.
+Specifying the reward function, i.e. the rule that maps each state-action pair to a reward, is often a complex and error-prone process. In our self-driving car example from the previous section, we would need to account for numerous cases to design rewards that encourage the agent to both achieve the primary task of reaching the destination and satisfy constraints like stopping for pedestrians, etc. Crafting a reward function that balances all these considerations can quickly become unmanagable as tasks increase in complexity.
 
 Tied to that is the problem of sparse rewards. In many scenarios the agent may receive no feedback for a majority of its actions. For example the self-driving car might only receive a positive reward after coming to a complete halt in front of a passing pedestrian. However it would get no reward for the crucial action of slowing down earlier, even though this behavior is critical for safety and anticipates the pedestrian's presence before they are fully visible. These sorts of scenarios can be very difficult to encode in the reward function.
 
-There a number of different ways to express the rewards in another language than straight up hard coding the reward function in the implementation. An often used one is the linear temporal logic.
+There are a number of different ways to express the rewards in other languages than straight up hard coding the reward function in the implementation. An often used one is the linear temporal logic.
 
-\section*{Linear Temporal Logics \& Co}
+\section*{Linear Temporal Logics}
 
-In linear temporal logic (LTL) we can reason about the future of propositions, such as a proposition will eventually be true or will be true until another condition holds. The basic building blocks, called atomic propositions, are statements that are either true or false. Typically these represent some state of the system that we want to reason about, for example a door being closed or open or a value exceeding a threshold. These can be connected with the usual logical operators like $\wedge$, $\neg$ and also temporal operators \emph{next}, $\bigcirc$, and \emph{until}, $U$. Formally LTL is defined as follows.
+In linear temporal logic (LTL) we can reason about the future of propositions, such as a proposition will eventually be true or will be true until another condition holds. The basic building blocks, called atomic propositions, are statements that are either true or false. Typically these represent some state of the system that we want to reason about, for example a door being closed or open or a value exceeding a threshold. These can be connected with the usual logical operators like $\od$, $\neg$ and also temporal operators like \emph{next}, $\nxt$, and \emph{until}, $\until$, that check if conditions hold in the future. Formally LTL is defined as follows.
 
-\defn{
+\begin{definition}
 	For a finite set of atomic propositions $\mathcal{P}$ the set of \emph{LTL formula} is defined inductively as
 	\begin{itemize}
 		\item $p \in \mathcal{P} \implies p$ is a LTL formula
-		\item $\psi, \phi$ LTL formula $\implies \neg\psi, \psi \vee \phi, \bigcirc\psi, \phi U \psi$
+		\item $\psi, \phi$ LTL formula $\implies \neg\psi, \psi\od\phi, \nxt\psi$ and $\phi\until\psi$ are LTL formula
 	\end{itemize}
-}
+\end{definition}
 
-explain different operators and the derived ones, also the sequencing...
+LTL operators over sequences of truth assignments and decides if a given formula is satisfied by this sequence. [after sequencing and satisfaction explain next and until] show graphs of these operators
 
+So for the two definitional temporal operators, $\nxt\phi$ is true when $\phi$ holds in the next time step. And $\phi\until\psi$ means that $\phi$ must hold at least until the time step that $\psi$ is true.
 
+\begin{definition}
+	Further symbols and operators that can be used in LTL formulas are:
+	\begin{itemize}
+		\item \emph{true}, $\true := p\od\neg p$ for some $p \in \mathcal{P}$, is always true
+		\item \emph{false}, $\false := \neg\true$, is always false
+		\item \emph{and}, $\phi\an\psi := \neg(\neg\phi\od\neg\psi)$
+		\item \emph{implication}, $\phi\imply\psi := \neg\phi\od\psi$
+		\item \emph{equivalence}, $\phi\equivalent\psi := (\phi\imply\psi) \an (\psi\imply\phi)$
+		\item \emph{eventually}, $\eventually\phi := \true\until\phi$, is true when $\phi$ holds at some time step in the future.
+		\item \emph{always}, $\always\phi := \neg\eventually\neg\phi$, is true when $\phi$ holds from now on until forever.
+		\item \emph{release}, $\phi\release\psi := \neg(\neg\phi\until\neg\psi)$, $\psi$ must hold until and including the point when $\phi$ first becomes true. If $\phi$ never becomes true then $\psi$ must remain true forever.
+	\end{itemize}
+\end{definition}
 
+Parentheses are also allowed in formulas. There are some more temporal operator variations but these will suffice for us.
+
+TODO: show graph of temporal operators
 
 \section*{Example}
 
-give example of a simple agent and its reward specification in ltl and derive its reward machine from it
+give example of a simple agent and its reward specification in ltl and how that would yield a hard coded implementation. motivate the next step of converting that to an automaton for the rm construction
 
-\section*{Theory}
+\section*{Construction}
 
-definitions and proof of ltl -> büchli -> dfa -> reward machine
+definitions and proof of ltl -> büchi -> dfa -> reward machine
 
-write about hierarchy and possible extensions
+\section*{Conclusion \& Outlook}
 
-\section*{Conclusion}
-
-...
+abstraction over the states an agent can be in, rm can be considered lingua franca since regular languages can always be translated into dfa and thus an rm, write about hierarchy and possible extensions
 
 \section*{Basic Definitions}
 
-\defn{
+\begin{definition}
 	\emph{Propositional symbols} are statements that are either true or false. \emph{Formulas} over propositional symbols consist of combinations of them with operations $\neg$, $\wedge$, $\vee$, $\implies$ and $\iff$. We say a formula $\psi$ \emph{provable} from a formula $\phi$, if $\psi$ can be derived from $\phi$ and write $\phi \vdash \psi$.
-}
+\end{definition}
 
 In the following we will suppose that we are in a reinforcement learning setting with a finite set of states $S$, with $s_0$ being the initial state, a set $T \subseteq S$ of terminal states and a finite set of actions $A$. Furthermore we suppose that we have a finite set of propositional symbols $\mathcal{P}$.
 
-\defn{
+\begin{definition}
 	A \emph{labeling function} $L : S \times A \times S \to 2^{\mathcal{P}}$ maps experiences to truth assigments over propositional symbols $\mathcal{P}$.
-}
+\end{definition}
 
-\defn{
+\begin{definition}
 	A \emph{Non-Markovian Reward Decision Process (NMRDP)} is a tuple $(S, A, s_0, T, R, \gamma)$, where $S, A, s_0, T$ and $\gamma$ are defined as in a regular MDP and $R : (S \times A)^+ \times S \to \mathbb{R}$ is a non-Markovian reward function that maps finite state-action histories into a real value. Note that $X^+ := \bigcup_{n=1}^{\infty} X^n$ represents all non-empty finite sequences of a set $X$.
-}
+\end{definition}
 
 \section*{Reward Machines}
 
-\defn{
+\begin{definition}
 	A \emph{Mealy machine} is a tuple $(U, u_0, \Sigma, \mathcal{R}, \delta, \rho)$, where
 	\begin{itemize}
 		\item $U$ is a finite set of states
@@ -102,13 +131,13 @@ In the following we will suppose that we are in a reinforcement learning setting
 		\item $\delta : U \times \Sigma \to U$ is the transition function
 		\item $\rho : U \times \Sigma \to \mathcal{R}$ is the output function
 	\end{itemize}
-}
+\end{definition}
 
-\defn{
+\begin{definition}
 	A \emph{reward machine (RM)} is a Mealy machine $(U, u_0, \Sigma = 2^\mathcal{P}, \mathcal{R}, \delta, \rho)$, where $\mathcal{R}$ is a finite set of reward functions $S \times A \times S \to \mathbb{R}$.
-}
+\end{definition}
 
-\defn{
+\begin{definition}
 	The non-Markovian reward function $R$ \emph{induced by an RM} $(U, u_0, 2^\mathcal{P}, \mathcal{R}, \delta, \rho)$ is
 	\begin{align*}
 		R : (S \times A)^+ \times S                       & \to \mathbb{R}                                                     \\
@@ -116,13 +145,13 @@ In the following we will suppose that we are in a reinforcement learning setting
 		R\big((s_0, a_0), \dots, (s_n, a_n), s_{n+1}\big) & = r(s_n, a_n, s_{n+1})
 	\end{align*}
 	where $u_n = \delta\big(u_{n-1}, L(s_{n-1}, a_{n-1}, s_n)\big)$ is defined recursively with the base case being the initial state $u_0$.
-}
+\end{definition}
 
 \section*{Logics and Automata}
 
 ltl \& co, dfa, dfa construction theorem and proof (source?)
 
-\defn{
+\begin{definition}
 	A \emph{deterministic finite automaton (DFA)} is a tuple $(U, u_0, \Sigma, \delta, F)$, where
 	\begin{itemize}
 		\item $U$ is a finite set of states
@@ -131,43 +160,39 @@ ltl \& co, dfa, dfa construction theorem and proof (source?)
 		\item $\delta : U \times \Sigma \to U$ is the transition function
 		\item $F \subseteq U$ is a set of accepting states
 	\end{itemize}
-}
+\end{definition}
 
 \section*{Reward Specifications}
 
-\defn{
+\begin{definition}
 	% WARN: R is also used for the RM induces non-Markovian reward function!!!
 	% TODO: maybe use hat or something (hat also used below)
 	% TODO: define regular language above?
 	A \emph{reward specification} is a set $R = \{(r_1, \phi_1), \dots, (r_N, \phi_N)\}$, where each $r_i \in \mathbb{R}$ and $\phi_i$ is a formula over the propositional symbols $\mathcal{P}$ expressed in some regular language.
-}
+\end{definition}
 
-\defn{
+\begin{definition}
 	Let $\tau = \big( (s_0, a_0), \dots, (s_n, a_n), s_{n+1} \big)\in (S \times A)^+ \times S$ be a trace of experiences. We say that the projection of the experiences of $\tau$ by $L$ \emph{entails} a formula $\phi$, and write $\tau \vdash_L \phi$, if $L(s_0, a_0, s_1) \dots L(s_n, a_n, s_{n+1}) \vdash \phi$.
-}
+\end{definition}
 
-\defn{
+\begin{definition}
 	The non-Markovian reward function $\hat{R}$ \emph{induced by the reward specification} $R = \{(r_1, \phi_1), \dots, (r_n, \phi_n)\}$ assigns reward $\hat{R}(\tau) := \sum_{k=1}^N \mathds{1}(\tau \vdash_L \phi_k)$ to a trace $\tau = \big( (s_0, a_0), \dots, (s_n, a_n), s_{n+1} \big) \in (S \times A)^+ \times S$.
-}
+\end{definition}
 
 \section*{Construction Theorem}
 
-\thm{
+\begin{theorem}
 	There exists a reward machine that induces the same non-Markovian reward function as a given reward specification $R = \{(r_1, \phi_1), \dots, (r_N, \phi_N)\}$.
-}
+\end{theorem}
 
-\prf{
-	Let...
-}
+\begin{proof}
+	Let ...
+\end{proof}
 
-\cor{
+\begin{corollary}
+	also ...
+\end{corollary}
 
-}
-
-\section*{Example}
-
-go through the construction of a very simple formula to reward machine
-
-\printbibliography
+% \printbibliography
 
 \end{document}
