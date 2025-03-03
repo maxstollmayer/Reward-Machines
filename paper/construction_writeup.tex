@@ -26,6 +26,54 @@
 
 \maketitle
 
+\begin{itemize}
+	\item general problem of writing reward functions
+	\item ltl and other logics
+	\item example with ltl and reward machine
+	\item construct büchli -> dfa and compare to reward machine
+	\item proof of dfa construction
+	\item proof of reward machine
+\end{itemize}
+
+\section*{Reward Specification}
+
+Specifying the reward function, i.e. the rule that maps each state-action pair to a reward, is often a complex and error-prone process. In our self-driving car example from above, we would need to account for numerous cases to design rewards that encourage the agent to both achieve the primary task of reaching the destination and satisfy constraints like stopping for pedestrians, etc. Crafting a reward function that balances all these considerations can quickly become unmanagable as tasks increase in complexity.
+
+Tied to that is the problem of sparse rewards. In many scenarios the agent may receive no feedback for a majority of its actions. For example the self-driving car might only receive a positive reward after coming to a complete halt in front of a passing pedestrian. However it would get no reward for the crucial action of slowing down earlier, even though this behavior is critical for safety and anticipates the pedestrian's presence before they are fully visible. These sorts of scenarios can be very difficult to encode in the reward function.
+
+There a number of different ways to express the rewards in another language than straight up hard coding the reward function in the implementation. An often used one is the linear temporal logic.
+
+\section*{Linear Temporal Logics \& Co}
+
+In linear temporal logic (LTL) we can reason about the future of propositions, such as a proposition will eventually be true or will be true until another condition holds. The basic building blocks, called atomic propositions, are statements that are either true or false. Typically these represent some state of the system that we want to reason about, for example a door being closed or open or a value exceeding a threshold. These can be connected with the usual logical operators like $\wedge$, $\neg$ and also temporal operators \emph{next}, $\bigcirc$, and \emph{until}, $U$. Formally LTL is defined as follows.
+
+\defn{
+	For a finite set of atomic propositions $\mathcal{P}$ the set of \emph{LTL formula} is defined inductively as
+	\begin{itemize}
+		\item $p \in \mathcal{P} \implies p$ is a LTL formula
+		\item $\psi, \phi$ LTL formula $\implies \neg\psi, \psi \vee \phi, \bigcirc\psi, \phi U \psi$
+	\end{itemize}
+}
+
+explain different operators and the derived ones, also the sequencing...
+
+
+
+
+\section*{Example}
+
+give example of a simple agent and its reward specification in ltl and derive its reward machine from it
+
+\section*{Theory}
+
+definitions and proof of ltl -> büchli -> dfa -> reward machine
+
+write about hierarchy and possible extensions
+
+\section*{Conclusion}
+
+...
+
 \section*{Basic Definitions}
 
 \defn{

@@ -6,7 +6,7 @@ State = tuple[int, int]
 Reward = float
 Terminal = bool
 Props = dict[str, bool]
-CRM_Info = dict[State, tuple[State, Reward, Terminal]]
+Info = dict[State, tuple[State, Reward, Terminal]]
 
 
 def extract_variables(formula: str) -> set[str]:
@@ -82,6 +82,7 @@ class RM:
         return bitmask
 
     def next_state(self, u1: int, props: Props) -> int:
+        return self.compute_next_state(u1, props)
         bitmask = self.get_bitmask(props)
         u2 = self.transitions.get((u1, bitmask))
         if u2 is None:
@@ -100,26 +101,23 @@ class RM:
     def get_reward(self, u1: int, u2: int) -> float:
         return self.delta_r[u1][u2]
 
-    def get_crm(self, s1: int, s2: int, props: Props) -> CRM_Info:
-        crm_info: CRM_Info = dict()
+    def get_info(self, s1: int, s2: int, props: Props) -> Info:
+        info: Info = dict()
         for u1 in self.states:
             u2 = self.next_state(u1, props)
             r = self.get_reward(u1, u2)
             done = u2 in self.terminal_states
-            crm_info[(s1, u1)] = ((s2, u2), r, done)
-        return crm_info
+            info[(s1, u1)] = ((s2, u2), r, done)
+        return info
 
     def step(
         self,
-        state: tuple[int, int],
+        state: State,
         next_env_state: int,
         props: Props,
-    ) -> tuple[State, float, bool, CRM_Info]:
+    ) -> tuple[State, float, bool, Info]:
         s1, u1 = state
         assert u1 not in self.terminal_states, "Expected non-terminal state."
-        u2 = self.next_state(u1, props)
-        next_state = (next_env_state, u2)
-        reward = self.get_reward(u1, u2)
-        done = u2 in self.terminal_states
-        crm_info = self.get_crm(s1, next_env_state, props)
-        return next_state, reward, done, crm_info
+        info = self.get_info(s1, next_env_state, props)
+        next_state, reward, done = info[state]
+        return next_state, reward, done, info

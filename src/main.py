@@ -1,9 +1,9 @@
 import minigrid
 
-from agent import QLearner, RMLearner
+from agent import BLLearner, RMLearner
 from envs.doorkey import RMDoorKey
 from rm import RM
-from train import test_QLearner, test_RMLearner, train_QLearner, train_RMLearner
+from train import test_BLLearner, test_RMLearner, train_BLLearner, train_RMLearner
 
 # just so import does not get removed from formatter
 minigrid.__version__
@@ -21,10 +21,10 @@ MIN_EPSILON = 0.01
 
 def main() -> None:
     env = RMDoorKey(size=ENV_SIZE, max_steps=MAX_STEPS, render_mode="rgb_array")
-    rm = RM.from_file("src/envs/doorkey.txt")
+    rm = RM.from_file("src/envs/doorkey2.txt")
 
-    print("Training using Q-Learning:")
-    qlearner = QLearner(
+    print("Training Baseline:")
+    bllearner = BLLearner(
         n_actions=env.action_space.n,
         alpha=ALPHA,
         gamma=GAMMA,
@@ -32,8 +32,12 @@ def main() -> None:
         epsilon_decay=EPSILON_DECAY,
         min_epsilon=MIN_EPSILON,
     )
-    _ = train_QLearner(qlearner, env, verbose=bool(VERBOSITY), report_each=VERBOSITY)
-    _ = test_QLearner(qlearner, env, verbose=bool(VERBOSITY), render=bool(VERBOSITY))
+    _ = train_BLLearner(
+        bllearner, env, rm, verbose=bool(VERBOSITY), report_each=VERBOSITY
+    )
+    _ = test_BLLearner(
+        bllearner, env, rm, verbose=bool(VERBOSITY), render=bool(VERBOSITY)
+    )
 
     print("Training using CRM:")
     rmlearner = RMLearner(

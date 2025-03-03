@@ -17,10 +17,12 @@ plt.rcParams.update(
 )
 
 
-ALGS = ["q", "crm"]
-ALG_TO_LABEL = {
-    "q": "Q-Learning",
-    "crm": "CRM",
+ALGS = {
+    "q": ("C0", "Q-Learning"),
+    "bl": ("C1", "Baseline"),
+    "crm": ("C2", "CRM"),
+    "bl2": ("C3", "Baseline tuned"),
+    "crm2": ("C4", "CRM tuned"),
 }
 
 
@@ -45,22 +47,16 @@ Avgs = dict[str, Avg]
 class Args(NamedTuple):
     runs: int
     size: int
-    end: int
     folder: str
 
 
 def get_args() -> Args:
     parser = argparse.ArgumentParser(description="Plot data for given experiments")
-    _ = parser.add_argument("-n", "--runs", type=int, default=10, help="number of runs")
     _ = parser.add_argument(
         "-s", "--size", type=int, default=5, help="size of the environment (default 5x5"
     )
     _ = parser.add_argument(
-        "-e",
-        "--end",
-        type=int,
-        default=-1,
-        help="plot data only until this value",
+        "-n", "--runs", type=int, default=100, help="number of runs"
     )
     _ = parser.add_argument(
         "-f",
@@ -70,7 +66,7 @@ def get_args() -> Args:
         help="folder that the data is stored in",
     )
     args = parser.parse_args()
-    return Args(args.runs, args.size, args.end, args.folder)
+    return Args(args.runs, args.size, args.folder)
 
 
 def get_data(folder: str, runs: int, size: int) -> Data:
@@ -88,19 +84,20 @@ def get_data(folder: str, runs: int, size: int) -> Data:
 def get_avgs(
     data: Data,
 ) -> Avgs:
-    n_runs = len(data[ALGS[0]])
+    k = list(ALGS.keys())[0]
+    n_runs = len(data[k])
     dir: Avgs = dict()
     for alg, runs in data.items():
         errors: list[float] = np.sum([run.errors for run in runs], axis=0) / n_runs
         rewards: list[float] = np.sum([run.rewards for run in runs], axis=0) / n_runs
         steps: list[float] = np.sum([run.steps for run in runs], axis=0) / n_runs
-        # test_steps = sum([run.test_steps for run in runs]) / n_runs
         dir[alg] = Avg(errors, rewards, steps, [run.test_steps for run in runs])
     return dir
 
 
 def print_result(avgs: Avgs, runs: int) -> None:
-    episodes = len(avgs[ALGS[0]][0])
+    k = list(ALGS.keys())[0]
+    episodes = len(avgs[k][0])
     n = max(len(alg) for alg in ALGS)
     print(
         f"Number of steps in {runs} runs of exploiting after training for {episodes} episodes:"
@@ -117,12 +114,13 @@ def print_result(avgs: Avgs, runs: int) -> None:
         )
 
 
-def plot(avgs: Avgs, runs: int, size: int, end: int) -> None:
+def plot_comparison1(avgs: Avgs, runs: int, size: int) -> None:
     fig, axs = plt.subplots(ncols=3, figsize=(6.27, 1.425))
-    for i, (alg, avg) in enumerate(avgs.items()):
-        axs[0].plot(avg.errors[:end], color=f"C{i}", label=ALG_TO_LABEL[alg])
-        axs[1].plot(avg.rewards[:end], color=f"C{i}")
-        axs[2].plot(avg.steps[:end], color=f"C{i}")
+    for alg, avg in ((k, avgs[k]) for k in ["q", "bl", "crm"]):
+        color, label = ALGS[alg]
+        axs[0].plot(avg.errors, color=color, alpha=0.5, label=label)
+        axs[1].plot(avg.rewards, color=color, alpha=0.5)
+        axs[2].plot(avg.steps, color=color, alpha=0.5)
     axs[0].set_xlabel("Episode")
     axs[1].set_xlabel("Episode")
     axs[2].set_xlabel("Episode")
@@ -130,15 +128,48 @@ def plot(avgs: Avgs, runs: int, size: int, end: int) -> None:
     axs[1].set_title("Total reward")
     axs[2].set_title("Steps")
     axs[0].legend()
-    fig.savefig(f"paper/figures/fig_{runs}runs_{size}x{size}.pdf", format="pdf")
+    fig.savefig(f"paper/figures/cmp1_{runs}runs_{size}x{size}.pdf", format="pdf")
+
+
+def plot_comparison2(avgs: Avgs, runs: int, size: int) -> None:
+    fig, axs = plt.subplots(ncols=3, figsize=(6.27, 1.425))
+    for alg, avg in ((k, avgs[k]) for k in ["bl2", "crm2"]):
+        color, label = ALGS[alg]
+        axs[0].plot(avg.errors, color=color, alpha=0.5, label=label)
+        axs[1].plot(avg.rewards, color=color, alpha=0.5)
+        axs[2].plot(avg.steps, color=color, alpha=0.5)
+    axs[0].set_xlabel("Episode")
+    axs[1].set_xlabel("Episode")
+    axs[2].set_xlabel("Episode")
+    axs[0].set_title("Training (TD) error")
+    axs[1].set_title("Total reward")
+    axs[2].set_title("Steps")
+    axs[0].legend()
+    fig.savefig(f"paper/figures/cmp2_{runs}runs_{size}x{size}.pdf", format="pdf")
+
+
+def plot_comparison3(avgs: Avgs, runs: int, size: int) -> None:
+    fig, axs = plt.subplots(ncols=2, figsize=(4.2, 1.425))
+    for alg, avg in avgs.items():
+        color, label = ALGS[alg]
+        axs[0].plot(avg.errors, color=color, alpha=0.5, label=label)
+        axs[1].plot(avg.steps, color=color, alpha=0.5, label=label)
+    axs[0].set_xlabel("Episode")
+    axs[1].set_xlabel("Episode")
+    axs[0].set_title("Training (TD) error")
+    axs[1].set_title("Steps")
+    axs[1].legend(loc="upper right", bbox_to_anchor=(2.1, 1), ncols=1)
+    fig.savefig(f"paper/figures/cmp3_{runs}runs_{size}x{size}.pdf", format="pdf")
 
 
 def main() -> None:
-    runs, size, end, folder = get_args()
+    runs, size, folder = get_args()
     data = get_data(folder, runs, size)
     avgs = get_avgs(data)
     print_result(avgs, runs)
-    plot(avgs, runs, size, end)
+    plot_comparison1(avgs, runs, size)
+    plot_comparison2(avgs, runs, size)
+    plot_comparison3(avgs, runs, size)
 
 
 if __name__ == "__main__":

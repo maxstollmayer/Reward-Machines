@@ -1,6 +1,6 @@
 from gymnasium.wrappers import HumanRendering
 
-from agent import QLearner, RMLearner
+from agent import BLLearner, QLearner, RMLearner
 from env import RMMiniGridEnv
 from rm import RM
 
@@ -29,22 +29,25 @@ def train_RMLearner(
     for episode in range(episodes):
         env_state, _ = env.reset()
         u = rm.reset()
+        agent.reset()
         state = (env_state, u)
         done = False
         total_reward = 0
-        length = 0
+        # length = 0
 
         while not done:
             action = agent.get_action(state, explore=True)
 
             next_env_state, _reward, _terminated, _truncated, info = env.step(action)
             next_state, reward, done, crm_info = rm.step(state, next_env_state, info)
-            agent.update(action, crm_info)
+            agent.update(state, action, reward, next_state, done, crm_info)
             total_reward += reward
-            length += 1
+            # length += 1
             state = next_state
 
-        error = sum(agent.errors[-length:]) / length
+        # error = sum(agent.errors[-length:]) / length
+        length = len(agent.errors)
+        error = sum(agent.errors) / length
         errors.append(error)
         rewards.append(total_reward)
         steps.append(length)
@@ -90,6 +93,84 @@ def test_RMLearner(
     return steps
 
 
+def train_BLLearner(
+    agent: BLLearner,
+    env: RMMiniGridEnv,
+    rm: RM,
+    episodes: int = 1000,
+    report_each: int = 100,
+    verbose: bool = True,
+) -> tuple[list[float], list[float], list[int]]:
+    errors: list[float] = []
+    rewards: list[float] = []
+    steps: list[int] = []
+    for episode in range(episodes):
+        env_state, _ = env.reset()
+        u = rm.reset()
+        agent.reset()
+        state = (env_state, u)
+        done = False
+        total_reward = 0
+        # length = 0
+
+        while not done:
+            action = agent.get_action(state, explore=True)
+
+            next_env_state, _reward, _terminated, _truncated, info = env.step(action)
+            next_state, reward, done, _ = rm.step(state, next_env_state, info)
+            agent.update(state, action, reward, next_state, done)
+            total_reward += reward
+            # length += 1
+            state = next_state
+
+        # error = sum(agent.errors[-length:]) / length
+        length = len(agent.errors)
+        error = sum(agent.errors) / length
+        errors.append(error)
+        rewards.append(total_reward)
+        steps.append(length)
+
+        if episode % report_each == 0:
+            if verbose:
+                print(
+                    f"episode {episode:4}: error={error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
+                )
+
+        agent.decay_epsilon()
+
+    env.close()
+    return errors, rewards, steps
+
+
+def test_BLLearner(
+    agent: BLLearner,
+    env: RMMiniGridEnv,
+    rm: RM,
+    render: bool = False,
+    verbose: bool = False,
+) -> int:
+    if render:
+        env = HumanRendering(env)
+    env_state, _ = env.reset(seed=0)
+    u = rm.reset()
+    state = (env_state, u)
+    done = False
+    steps = 0
+
+    while not done:
+        action = agent.get_action(state, explore=False)
+        next_env_state, _, _, _, info = env.step(action)
+        state, _, done, _ = rm.step(state, next_env_state, info)
+        steps += 1
+        if verbose:
+            print(IDX_TO_ACTION[action])
+        if render:
+            env.render()
+
+    env.close()
+    return steps
+
+
 def train_QLearner(
     agent: QLearner,
     env: RMMiniGridEnv,
@@ -102,9 +183,10 @@ def train_QLearner(
     steps: list[int] = []
     for episode in range(episodes):
         state, _ = env.reset()
+        agent.reset()
         done = False
         total_reward = 0
-        length = 0
+        # length = 0
 
         while not done:
             action = agent.get_action(state, explore=True)
@@ -114,9 +196,11 @@ def train_QLearner(
             agent.update(state, action, reward, done, next_state)
             state = next_state
             total_reward += reward
-            length += 1
+            # length += 1
 
-        error = sum(agent.errors[-length:]) / length
+        # error = sum(agent.errors[-length:]) / length
+        length = len(agent.errors)
+        error = sum(agent.errors) / length
         errors.append(error)
         rewards.append(total_reward)
         steps.append(length)

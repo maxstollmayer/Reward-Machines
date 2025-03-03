@@ -2,10 +2,17 @@ import argparse
 import json
 from typing import NamedTuple
 
-from agent import QLearner, RMLearner
+from agent import BLLearner, QLearner, RMLearner
 from envs.doorkey import RMDoorKey
 from rm import RM
-from train import test_QLearner, test_RMLearner, train_QLearner, train_RMLearner
+from train import (
+    test_BLLearner,
+    test_QLearner,
+    test_RMLearner,
+    train_BLLearner,
+    train_QLearner,
+    train_RMLearner,
+)
 
 VERBOSE = False
 ALPHA = 0.1
@@ -36,7 +43,10 @@ def get_args() -> Args:
         description="Run the experiment once using different parameters."
     )
     _ = parser.add_argument(
-        "algorithm", choices=["q", "crm"], type=str, help="algorithm to use"
+        "algorithm",
+        choices=["q", "bl", "crm", "bl2", "crm2"],
+        type=str,
+        help="algorithm to use",
     )
     _ = parser.add_argument(
         "-s",
@@ -91,9 +101,28 @@ def run_q(size: int, max_steps: int, episodes: int) -> Run:
     return Run(*training_data, testing_data)
 
 
-def run_rm(size: int, max_steps: int, episodes: int) -> Run:
+def run_bl(size: int, max_steps: int, episodes: int, rm_file: str) -> Run:
     env = RMDoorKey(size=size, max_steps=max_steps)
-    rm = RM.from_file("src/envs/doorkey.txt")
+    rm = RM.from_file(rm_file)
+    learner = BLLearner(
+        n_actions=env.action_space.n,
+        alpha=ALPHA,
+        gamma=GAMMA,
+        epsilon=EPSILON,
+        epsilon_decay=EPSILON_DECAY,
+        min_epsilon=MIN_EPSILON,
+    )
+    training_data = train_BLLearner(
+        learner, env, rm, episodes=episodes, verbose=VERBOSE
+    )
+
+    testing_data = test_BLLearner(learner, env, rm)
+    return Run(*training_data, testing_data)
+
+
+def run_rm(size: int, max_steps: int, episodes: int, rm_file: str) -> Run:
+    env = RMDoorKey(size=size, max_steps=max_steps)
+    rm = RM.from_file(rm_file)
     learner = RMLearner(
         n_actions=env.action_space.n,
         alpha=ALPHA,
@@ -117,10 +146,19 @@ def save_data(data: Run, filename: str) -> None:
 def main() -> None:
     alg, size, max_steps, episodes, suffix, folder = get_args()
 
-    if alg == "q":
-        data = run_q(size, max_steps, episodes)
-    else:
-        data = run_rm(size, max_steps, episodes)
+    match alg:
+        case "q":
+            data = run_q(size, max_steps, episodes)
+        case "bl":
+            data = run_bl(size, max_steps, episodes, "src/envs/doorkey.txt")
+        case "crm":
+            data = run_rm(size, max_steps, episodes, "src/envs/doorkey.txt")
+        case "bl2":
+            data = run_bl(size, max_steps, episodes, "src/envs/doorkey2.txt")
+        case "crm2":
+            data = run_rm(size, max_steps, episodes, "src/envs/doorkey2.txt")
+        case _:
+            raise ValueError(f"ERROR: unknown algorithm '{alg}'.")
 
     save_data(data, f"{folder}/{alg}_{size}x{size}_{suffix}.json")
 
