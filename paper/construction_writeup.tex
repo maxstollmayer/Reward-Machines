@@ -29,8 +29,12 @@
 \DeclareMathOperator{\release}{\textsf{R}}
 \DeclareMathOperator{\eventually}{\Diamond}
 \DeclareMathOperator{\always}{\Box}
+\DeclareMathOperator{\sat}{\vDash}
+\DeclareMathOperator{\nsat}{\nvDash}
 
 \renewcommand{\phi}{\varphi}
+\newcommand{\N}{\mathbb{N}}
+\renewcommand{\P}{\mathcal{P}}
 
 \title{Reward Machine Construction Writeup}
 \author{Maximilian Stollmayer}
@@ -62,21 +66,36 @@ There are a number of different ways to express the rewards in other languages t
 In linear temporal logic (LTL) we can reason about the future of propositions, such as a proposition will eventually be true or will be true until another condition holds. The basic building blocks, called atomic propositions, are statements that are either true or false. Typically these represent some state of the system that we want to reason about, for example a door being closed or open or a value exceeding a threshold. These can be connected with the usual logical operators like $\od$, $\neg$ and also temporal operators like \emph{next}, $\nxt$, and \emph{until}, $\until$, that check if conditions hold in the future. Formally LTL is defined as follows.
 
 \begin{definition}
-	For a finite set of atomic propositions $\mathcal{P}$ the set of \emph{LTL formula} is defined inductively as
+	For a finite set of atomic propositions $\P$ the set of \emph{LTL formula} is defined inductively as
 	\begin{itemize}
-		\item $p \in \mathcal{P} \implies p$ is a LTL formula
+		\item $p\in\P \implies p$ is a LTL formula
 		\item $\psi, \phi$ LTL formula $\implies \neg\psi, \psi\od\phi, \nxt\psi$ and $\phi\until\psi$ are LTL formula
 	\end{itemize}
+	Furthermore $\Sigma = 2^{\P}$ is called the \emph{alphabet} and an $s = s_0 s_1 s_2 ... \in \Sigma^{\N}$ is called a \emph{word}.
 \end{definition}
 
-LTL operators over sequences of truth assignments and decides if a given formula is satisfied by this sequence. [after sequencing and satisfaction explain next and until] show graphs of these operators
-
-So for the two definitional temporal operators, $\nxt\phi$ is true when $\phi$ holds in the next time step. And $\phi\until\psi$ means that $\phi$ must hold at least until the time step that $\psi$ is true.
+LTL operates over these words, which are sequences of sets of atomic propositions that are true at that time step, to determine if the formula is satisfied. The satisfaction semantics are inductively defined as follows.
 
 \begin{definition}
-	Further symbols and operators that can be used in LTL formulas are:
+	We say a word $s$ \emph{satisfies} an LTL formula $\phi$, $s\sat\phi$, according to the following rules:
 	\begin{itemize}
-		\item \emph{true}, $\true := p\od\neg p$ for some $p \in \mathcal{P}$, is always true
+		\item $s\sat a\in\P$ iff $a\in s_0$
+		\item $s\sat\neg\phi$ iff $s\nsat\phi$
+		\item $s\sat\phi\od\psi$ iff $s\sat\phi$ or $s\sat\psi$
+		\item $s\sat\nxt\phi$ iff $s_{1\dots}\sat\phi$
+		\item $s\sat\phi\until\psi$ iff $\exists i\ge 0$ such that $s_{i\dots}\sat\psi$ and $\forall 0 \le j < i : s_{j\dots}\sat\phi$
+	\end{itemize}
+	where $s_{i\dots}$ is shorthand for $s_i s_{i+1} s_{i+2} \dots \in \Sigma^\N$.
+\end{definition}
+
+So for the temporal operators, $\nxt\phi$ is true when $\phi$ holds in the next time step. And $\phi\until\psi$ means that $\phi$ must hold at least until the time step that $\psi$ is true.
+
+Further symbols and operators that can be used in LTL formulas are:
+
+\begin{definition}
+	\
+	\begin{itemize}
+		\item \emph{true}, $\true := p\od\neg p$ for some $p \in \P$, is always true
 		\item \emph{false}, $\false := \neg\true$, is always false
 		\item \emph{and}, $\phi\an\psi := \neg(\neg\phi\od\neg\psi)$
 		\item \emph{implication}, $\phi\imply\psi := \neg\phi\od\psi$
@@ -87,7 +106,7 @@ So for the two definitional temporal operators, $\nxt\phi$ is true when $\phi$ h
 	\end{itemize}
 \end{definition}
 
-Parentheses are also allowed in formulas. There are some more temporal operator variations but these will suffice for us.
+Parentheses are also allowed in formulas but are not part of the grammar, since they only provide a way to get the correct grouping. There are some more temporal operator variations but these will suffice for us.
 
 TODO: show graph of temporal operators
 
