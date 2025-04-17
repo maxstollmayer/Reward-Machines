@@ -5,37 +5,35 @@ param(
     [string]$folder = "data" # folder to store the data in
 )
 
-function Run-Alg {
-    param(
-        [string]$alg, # algorithm to use [q, bl, crm]
-        [int]$i # current iteration
-    )
-    & python "src/run.py" $alg -s $size -e $episodes -x $i -f $folder
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "run.py failed on iteration $i of algorithm $alg."
-        exit $LASTEXITCODE
+$algorithms = @("q", "bl", "crm", "bl2", "crm2")
+
+# maximum number of parallel jobs, adjust based on workload
+[int]$maxParallel = [math]::Round([System.Environment]::ProcessorCount * 3 / 4)
+
+# activate virtual environment
+. ".venv\Scripts\activate.ps1"
+
+$jobList = foreach ($i in 1..$runs) {
+    $algorithms | ForEach-Object {
+        [PSCustomObject]@{ Algorithm = $_; Iteration = $i }
     }
 }
 
-
-
-. ".venv\Scripts\activate.ps1"
-
-for ($i = 1; $i -le $runs; $i++) {
-    Write-Host -NoNewline "`rRunning algorithms on ${size}x$size for $episodes episodes: $i/$runs`r"
-    Run-Alg -alg "q" -i $i
-    Run-Alg -alg "bl" -i $i
-    Run-Alg -alg "crm" -i $i
-    Run-Alg -alg "bl2" -i $i
-    Run-Alg -alg "crm2" -i $i
+# run in parallel
+$jobList | ForEach-Object -Parallel {
+    & python "src/run.py" $_.Algorithm -s $using:size -e $using:episodes -x $_.Iteration -f $using:folder
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "run.py failed on iteration $($_.Iteration) of algorithm $($_.Algorithm)."
+        exit $LASTEXITCODE
+    }
+    $_
+} -ThrottleLimit $maxParallel | ForEach-Object -Begin { $received = 0} -Process {
+    $received += 1
+    [int] $percentComplete = ($received / $jobList.Count) * 100
+    Write-Progress -Activity "Running algorithms on $($size)x$size for $episodes episodes" -Status "$percentComplete% complete" -PercentComplete $percentComplete
+    $_
 }
 
+# generate plots after completion
 Write-Host "`nFinished running algorithms. Generating plots."
-
 & python "src/plot.py" -n $runs -s $size -f $folder
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "plot.py failed."
-    exit $LASTEXITCODE
-}
-

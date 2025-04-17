@@ -3,10 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 State = tuple[int, int]
-Reward = float
-Terminal = bool
-Props = dict[str, bool]
-Info = dict[State, tuple[State, Reward, Terminal]]
+Experience = dict[State, tuple[State, float, bool]]
 
 
 def extract_variables(formula: str) -> set[str]:
@@ -20,11 +17,11 @@ def parse_formula(formula: str) -> str:
     return formula
 
 
-def evaluate_formula(formula: str, variables: Props) -> bool:
+def evaluate_formula(formula: str, props: dict[str, bool]) -> bool:
     try:
         # WARN: can execute arbitrary code
         # TODO: make custom evaluator
-        return bool(eval(formula, {}, variables))
+        return bool(eval(formula, {}, props))
     except Exception as e:
         raise ValueError(f"Invalid formula: '{formula}'. Error: {e}")
 
@@ -38,14 +35,12 @@ class RM:
 
         states_set: set[int] = set()
         terminals_set: set[int] = set()
-        variables: set[str] = set()
         self.delta_u: dict[int, dict[int, str]] = defaultdict(dict)
         self.delta_r: dict[int, dict[int, float]] = defaultdict(dict)
 
         for u1, u2, formula, reward in transitions:
             states_set.add(u1)
             terminals_set.add(u2)
-            variables.update(extract_variables(formula))
             self.delta_u[u1][u2] = parse_formula(formula)
             self.delta_r[u1][u2] = reward
 
@@ -54,8 +49,6 @@ class RM:
         self.states: list[int] = sorted(states_set)
         self.initial_state: int = self.states[0]
         self.terminal_states: list[int] = sorted(terminals_set)
-        self.variables: list[str] = sorted(variables)
-        self.transitions: dict[tuple[int, int], int] = dict()
 
     @staticmethod
     def from_file(filename: str) -> "RM":
@@ -71,26 +64,7 @@ class RM:
     def reset(self) -> int:
         return self.initial_state
 
-    def get_states(self) -> list[int]:
-        return self.states
-
-    def get_bitmask(self, props: Props) -> int:
-        bitmask = 0
-        for i, (prop, val) in enumerate(props.items()):
-            if val and prop in self.variables:
-                bitmask |= 1 << i
-        return bitmask
-
-    def next_state(self, u1: int, props: Props) -> int:
-        return self.compute_next_state(u1, props)
-        bitmask = self.get_bitmask(props)
-        u2 = self.transitions.get((u1, bitmask))
-        if u2 is None:
-            u2 = self.compute_next_state(u1, props)
-            self.transitions[(u1, bitmask)] = u2
-        return u2
-
-    def compute_next_state(self, u1: int, props: Props) -> int:
+    def get_next_state(self, u1: int, props: dict[str, bool]) -> int:
         for u2 in self.delta_u[u1]:
             if evaluate_formula(self.delta_u[u1][u2], props):
                 return u2
@@ -101,23 +75,23 @@ class RM:
     def get_reward(self, u1: int, u2: int) -> float:
         return self.delta_r[u1][u2]
 
-    def get_info(self, s1: int, s2: int, props: Props) -> Info:
-        info: Info = dict()
+    def get_experience(self, s1: int, s2: int, props: dict[str, bool]) -> Experience:
+        experience: Experience = dict()
         for u1 in self.states:
-            u2 = self.next_state(u1, props)
+            u2 = self.get_next_state(u1, props)
             r = self.get_reward(u1, u2)
-            done = u2 in self.terminal_states
-            info[(s1, u1)] = ((s2, u2), r, done)
-        return info
+            terminal = u2 in self.terminal_states
+            experience[(s1, u1)] = ((s2, u2), r, terminal)
+        return experience
 
     def step(
         self,
         state: State,
         next_env_state: int,
-        props: Props,
-    ) -> tuple[State, float, bool, Info]:
+        props: dict[str, bool],
+    ) -> tuple[State, float, bool, Experience]:
         s1, u1 = state
         assert u1 not in self.terminal_states, "Expected non-terminal state."
-        info = self.get_info(s1, next_env_state, props)
-        next_state, reward, done = info[state]
-        return next_state, reward, done, info
+        experience = self.get_experience(s1, next_env_state, props)
+        next_state, reward, terminal = experience[state]
+        return next_state, reward, terminal, experience

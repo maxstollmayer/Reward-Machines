@@ -61,7 +61,7 @@ Tied to that is the problem of sparse rewards. In many scenarios the agent may r
 
 There are a number of different ways to express the rewards in other languages than straight up hard coding the reward function in the implementation. An often used one is the linear temporal logic.
 
-\section*{Linear Temporal Logics}
+\section*{Linear Temporal Logic}
 
 In linear temporal logic (LTL) we can reason about the future of propositions, such as a proposition will eventually be true or will be true until another condition holds. The basic building blocks, called atomic propositions, are statements that are either true or false. Typically these represent some state of the system that we want to reason about, for example a door being closed or open or a value exceeding a threshold. These can be connected with the usual logical operators like $\od$, $\neg$ and also temporal operators like \emph{next}, $\nxt$, and \emph{until}, $\until$, that check if conditions hold in the future. Formally LTL is defined as follows.
 
@@ -122,7 +122,7 @@ definitions and proof of ltl -> büchi -> dfa -> reward machine
 
 abstraction over the states an agent can be in, rm can be considered lingua franca since regular languages can always be translated into dfa and thus an rm, write about hierarchy and possible extensions
 
-\section*{Basic Definitions}
+\section*{OLD: Basic Definitions}
 
 \begin{definition}
 	\emph{Propositional symbols} are statements that are either true or false. \emph{Formulas} over propositional symbols consist of combinations of them with operations $\neg$, $\wedge$, $\vee$, $\implies$ and $\iff$. We say a formula $\psi$ \emph{provable} from a formula $\phi$, if $\psi$ can be derived from $\phi$ and write $\phi \vdash \psi$.

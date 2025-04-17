@@ -2,17 +2,11 @@ import argparse
 import json
 from typing import NamedTuple
 
-from agent import BLLearner, QLearner, RMLearner
+from agent import Agent, BLLearner, CRMLearner, QLearner
+from env import RMMiniGridEnv
 from envs.doorkey import RMDoorKey
 from rm import RM
-from train import (
-    test_BLLearner,
-    test_QLearner,
-    test_RMLearner,
-    train_BLLearner,
-    train_QLearner,
-    train_RMLearner,
-)
+from train import test, train
 
 VERBOSE = False
 ALPHA = 0.1
@@ -86,56 +80,15 @@ def get_args() -> Args:
     )
 
 
-def run_q(size: int, max_steps: int, episodes: int) -> Run:
-    env = RMDoorKey(size=size, max_steps=max_steps)
-    learner = QLearner(
-        n_actions=env.action_space.n,
-        alpha=ALPHA,
-        gamma=GAMMA,
-        epsilon=EPSILON,
-        epsilon_decay=EPSILON_DECAY,
-        min_epsilon=MIN_EPSILON,
-    )
-    training_data = train_QLearner(learner, env, episodes=episodes, verbose=VERBOSE)
-    testing_data = test_QLearner(learner, env)
-    return Run(*training_data, testing_data)
-
-
-def run_bl(size: int, max_steps: int, episodes: int, rm_file: str) -> Run:
-    env = RMDoorKey(size=size, max_steps=max_steps)
-    rm = RM.from_file(rm_file)
-    learner = BLLearner(
-        n_actions=env.action_space.n,
-        alpha=ALPHA,
-        gamma=GAMMA,
-        epsilon=EPSILON,
-        epsilon_decay=EPSILON_DECAY,
-        min_epsilon=MIN_EPSILON,
-    )
-    training_data = train_BLLearner(
-        learner, env, rm, episodes=episodes, verbose=VERBOSE
-    )
-
-    testing_data = test_BLLearner(learner, env, rm)
-    return Run(*training_data, testing_data)
-
-
-def run_rm(size: int, max_steps: int, episodes: int, rm_file: str) -> Run:
-    env = RMDoorKey(size=size, max_steps=max_steps)
-    rm = RM.from_file(rm_file)
-    learner = RMLearner(
-        n_actions=env.action_space.n,
-        alpha=ALPHA,
-        gamma=GAMMA,
-        epsilon=EPSILON,
-        epsilon_decay=EPSILON_DECAY,
-        min_epsilon=MIN_EPSILON,
-    )
-    training_data = train_RMLearner(
-        learner, env, rm, episodes=episodes, verbose=VERBOSE
-    )
-    testing_data = test_RMLearner(learner, env, rm)
-    return Run(*training_data, testing_data)
+def run(
+    agent: Agent[tuple[int, int], int] | Agent[int, int],
+    env: RMMiniGridEnv,
+    rm: RM | None = None,
+    episodes: int = 1,
+) -> Run:
+    train_data = train(agent, env, rm, episodes, verbose=VERBOSE)
+    test_data = test(agent, env, rm, verbose=VERBOSE)
+    return Run(*train_data, test_data)
 
 
 def save_data(data: Run, filename: str) -> None:
@@ -146,17 +99,63 @@ def save_data(data: Run, filename: str) -> None:
 def main() -> None:
     alg, size, max_steps, episodes, suffix, folder = get_args()
 
+    env = RMDoorKey(size=size, max_steps=max_steps)
+
     match alg:
         case "q":
-            data = run_q(size, max_steps, episodes)
+            agent = QLearner(
+                n_actions=env.action_space.n,
+                alpha=ALPHA,
+                gamma=GAMMA,
+                epsilon=EPSILON,
+                epsilon_decay=EPSILON_DECAY,
+                min_epsilon=MIN_EPSILON,
+            )
+            data = run(agent, env, episodes=episodes)
         case "bl":
-            data = run_bl(size, max_steps, episodes, "src/envs/doorkey.txt")
+            rm = RM.from_file("src/envs/doorkey.txt")
+            agent = BLLearner(
+                n_actions=env.action_space.n,
+                alpha=ALPHA,
+                gamma=GAMMA,
+                epsilon=EPSILON,
+                epsilon_decay=EPSILON_DECAY,
+                min_epsilon=MIN_EPSILON,
+            )
+            data = run(agent, env, rm, episodes)
         case "crm":
-            data = run_rm(size, max_steps, episodes, "src/envs/doorkey.txt")
+            rm = RM.from_file("src/envs/doorkey.txt")
+            agent = CRMLearner(
+                n_actions=env.action_space.n,
+                alpha=ALPHA,
+                gamma=GAMMA,
+                epsilon=EPSILON,
+                epsilon_decay=EPSILON_DECAY,
+                min_epsilon=MIN_EPSILON,
+            )
+            data = run(agent, env, rm, episodes)
         case "bl2":
-            data = run_bl(size, max_steps, episodes, "src/envs/doorkey2.txt")
+            rm = RM.from_file("src/envs/doorkey2.txt")
+            agent = BLLearner(
+                n_actions=env.action_space.n,
+                alpha=ALPHA,
+                gamma=GAMMA,
+                epsilon=EPSILON,
+                epsilon_decay=EPSILON_DECAY,
+                min_epsilon=MIN_EPSILON,
+            )
+            data = run(agent, env, rm, episodes)
         case "crm2":
-            data = run_rm(size, max_steps, episodes, "src/envs/doorkey2.txt")
+            rm = RM.from_file("src/envs/doorkey2.txt")
+            agent = CRMLearner(
+                n_actions=env.action_space.n,
+                alpha=ALPHA,
+                gamma=GAMMA,
+                epsilon=EPSILON,
+                epsilon_decay=EPSILON_DECAY,
+                min_epsilon=MIN_EPSILON,
+            )
+            data = run(agent, env, rm, episodes)
         case _:
             raise ValueError(f"ERROR: unknown algorithm '{alg}'.")
 

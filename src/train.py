@@ -1,6 +1,6 @@
 from gymnasium.wrappers import HumanRendering
 
-from agent import BLLearner, QLearner, RMLearner
+from agent import Agent
 from env import RMMiniGridEnv
 from rm import RM
 
@@ -11,205 +11,59 @@ IDX_TO_ACTION = {
     3: "pickup",
     4: "drop",
     5: "toggle",
-    6: "done",
+    6: "idle",
 }
 
 
-def train_RMLearner(
-    agent: RMLearner,
+def train(
+    agent: Agent[tuple[int, int], int] | Agent[int, int],
     env: RMMiniGridEnv,
-    rm: RM,
-    episodes: int = 1000,
-    report_each: int = 100,
+    rm: RM | None = None,
+    episodes: int = 1,
+    report_each: int = 1,
     verbose: bool = True,
 ) -> tuple[list[float], list[float], list[int]]:
     errors: list[float] = []
     rewards: list[float] = []
     steps: list[int] = []
-    for episode in range(episodes):
-        env_state, _ = env.reset()
-        u = rm.reset()
-        agent.reset()
-        state = (env_state, u)
-        done = False
-        total_reward = 0
-        # length = 0
 
-        while not done:
-            action = agent.get_action(state, explore=True)
-
-            next_env_state, _reward, _terminated, _truncated, info = env.step(action)
-            next_state, reward, done, crm_info = rm.step(state, next_env_state, info)
-            agent.update(state, action, reward, next_state, done, crm_info)
-            total_reward += reward
-            # length += 1
-            state = next_state
-
-        # error = sum(agent.errors[-length:]) / length
-        length = len(agent.errors)
-        error = sum(agent.errors) / length
-        errors.append(error)
-        rewards.append(total_reward)
-        steps.append(length)
-
-        if episode % report_each == 0:
-            if verbose:
-                print(
-                    f"episode {episode:4}: error={error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
-                )
-
-        agent.decay_epsilon()
-
-    env.close()
-    return errors, rewards, steps
-
-
-def test_RMLearner(
-    agent: RMLearner,
-    env: RMMiniGridEnv,
-    rm: RM,
-    render: bool = False,
-    verbose: bool = False,
-) -> int:
-    if render:
-        env = HumanRendering(env)
-    env_state, _ = env.reset(seed=0)
-    u = rm.reset()
-    state = (env_state, u)
-    done = False
-    steps = 0
-
-    while not done:
-        action = agent.get_action(state, explore=False)
-        next_env_state, _, _, _, info = env.step(action)
-        state, _, done, _ = rm.step(state, next_env_state, info)
-        steps += 1
-        if verbose:
-            print(IDX_TO_ACTION[action])
-        if render:
-            env.render()
-
-    env.close()
-    return steps
-
-
-def train_BLLearner(
-    agent: BLLearner,
-    env: RMMiniGridEnv,
-    rm: RM,
-    episodes: int = 1000,
-    report_each: int = 100,
-    verbose: bool = True,
-) -> tuple[list[float], list[float], list[int]]:
-    errors: list[float] = []
-    rewards: list[float] = []
-    steps: list[int] = []
-    for episode in range(episodes):
-        env_state, _ = env.reset()
-        u = rm.reset()
-        agent.reset()
-        state = (env_state, u)
-        done = False
-        total_reward = 0
-        # length = 0
-
-        while not done:
-            action = agent.get_action(state, explore=True)
-
-            next_env_state, _reward, _terminated, _truncated, info = env.step(action)
-            next_state, reward, done, _ = rm.step(state, next_env_state, info)
-            agent.update(state, action, reward, next_state, done)
-            total_reward += reward
-            # length += 1
-            state = next_state
-
-        # error = sum(agent.errors[-length:]) / length
-        length = len(agent.errors)
-        error = sum(agent.errors) / length
-        errors.append(error)
-        rewards.append(total_reward)
-        steps.append(length)
-
-        if episode % report_each == 0:
-            if verbose:
-                print(
-                    f"episode {episode:4}: error={error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
-                )
-
-        agent.decay_epsilon()
-
-    env.close()
-    return errors, rewards, steps
-
-
-def test_BLLearner(
-    agent: BLLearner,
-    env: RMMiniGridEnv,
-    rm: RM,
-    render: bool = False,
-    verbose: bool = False,
-) -> int:
-    if render:
-        env = HumanRendering(env)
-    env_state, _ = env.reset(seed=0)
-    u = rm.reset()
-    state = (env_state, u)
-    done = False
-    steps = 0
-
-    while not done:
-        action = agent.get_action(state, explore=False)
-        next_env_state, _, _, _, info = env.step(action)
-        state, _, done, _ = rm.step(state, next_env_state, info)
-        steps += 1
-        if verbose:
-            print(IDX_TO_ACTION[action])
-        if render:
-            env.render()
-
-    env.close()
-    return steps
-
-
-def train_QLearner(
-    agent: QLearner,
-    env: RMMiniGridEnv,
-    episodes: int = 1000,
-    report_each: int = 100,
-    verbose: bool = True,
-) -> tuple[list[float], list[float], list[int]]:
-    errors: list[float] = []
-    rewards: list[float] = []
-    steps: list[int] = []
     for episode in range(episodes):
         state, _ = env.reset()
-        agent.reset()
-        done = False
+        if rm is not None:
+            u = rm.reset()
+            state = (state, u)
         total_reward = 0
-        # length = 0
+        total_error = 0
+        length = 0
 
-        while not done:
+        terminal = False
+        while not terminal:
             action = agent.get_action(state, explore=True)
 
-            next_state, reward, terminated, truncated, _ = env.step(action)
-            done = terminated or truncated
-            agent.update(state, action, reward, done, next_state)
+            next_state, reward, terminated, truncated, props = env.step(action)
+            terminal = terminated or truncated
+            experience = {}
+            if rm is not None:
+                next_state, reward, terminal, experience = rm.step(
+                    state, next_state, props
+                )
+            error = agent.update(
+                state, action, reward, next_state, terminal, experience
+            )
             state = next_state
-            total_reward += reward
-            # length += 1
 
-        # error = sum(agent.errors[-length:]) / length
-        length = len(agent.errors)
-        error = sum(agent.errors) / length
-        errors.append(error)
+            total_error += abs(error)
+            total_reward += reward
+            length += 1
+
+        errors.append(total_error)
         rewards.append(total_reward)
         steps.append(length)
 
-        if episode % report_each == 0:
-            if verbose:
-                print(
-                    f"episode {episode:4}: error={error: .3f}, reward={total_reward:.3f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
-                )
+        if verbose and episode % report_each == 0:
+            print(
+                f"episode {episode:4}: error={total_error:6.2f}, reward={total_reward:4.1f}, steps={length:3.0f}, epsilon={agent.epsilon:.3f}"
+            )
 
         agent.decay_epsilon()
 
@@ -217,20 +71,30 @@ def train_QLearner(
     return errors, rewards, steps
 
 
-def test_QLearner(
-    agent: QLearner, env: RMMiniGridEnv, render: bool = False, verbose: bool = False
+def test(
+    agent: Agent[tuple[int, int], int] | Agent[int, int],
+    env: RMMiniGridEnv,
+    rm: RM | None = None,
+    render: bool = False,
+    verbose: bool = False,
 ) -> int:
     if render:
         env = HumanRendering(env)
-    state, _ = env.reset(seed=0)
+    state, _ = env.reset()
+    if rm is not None:
+        u = rm.reset()
+        state = (state, u)
     steps = 0
-    done = False
+    terminal = False
 
-    while not done:
+    while not terminal:
         action = agent.get_action(state, explore=False)
-        state, _, terminated, truncated, _ = env.step(action)
+        next_state, _, terminated, truncated, props = env.step(action)
+        terminal = terminated or truncated
+        if rm is not None:
+            next_state, _, terminal, _ = rm.step(state, next_state, props)
+        state = next_state
         steps += 1
-        done = terminated or truncated
         if verbose:
             print(IDX_TO_ACTION[action])
         if render:
