@@ -2,17 +2,16 @@ import argparse
 import json
 from typing import NamedTuple
 
-from agent import Agent, BLLearner, CRMLearner, QLearner
-from env import RMMiniGridEnv
-from envs.doorkey import RMDoorKey
+from agent import Agent, CRMQAgent, QAgent
+from envs.doorkey import DoorKey
 from rm import RM
 from train import test, train
 
 VERBOSE = False
+MAX_STEPS = 250
 ALPHA = 0.1
-GAMMA = 0.9
+GAMMA = 0.99
 EPSILON = 1.0
-EPSILON_DECAY = 0.995
 MIN_EPSILON = 0.01
 
 
@@ -26,7 +25,6 @@ class Run(NamedTuple):
 class Args(NamedTuple):
     alg: str
     size: int
-    max_steps: int
     episodes: int
     suffix: str
     folder: str
@@ -50,13 +48,6 @@ def get_args() -> Args:
         help="size of the doorkey environment (default: 5x5)",
     )
     _ = parser.add_argument(
-        "-m",
-        "--max-steps",
-        type=int,
-        default=300,
-        help="maximum steps in each episode before terminating",
-    )
-    _ = parser.add_argument(
         "-e",
         "--episodes",
         type=int,
@@ -73,7 +64,6 @@ def get_args() -> Args:
     return Args(
         args.algorithm,
         args.size,
-        args.max_steps,
         args.episodes,
         args.suffix,
         args.folder,
@@ -81,8 +71,8 @@ def get_args() -> Args:
 
 
 def run(
-    agent: Agent[tuple[int, int], int] | Agent[int, int],
-    env: RMMiniGridEnv,
+    agent: Agent,
+    env: DoorKey,
     rm: RM | None = None,
     episodes: int = 1,
 ) -> Run:
@@ -97,62 +87,63 @@ def save_data(data: Run, filename: str) -> None:
 
 
 def main() -> None:
-    alg, size, max_steps, episodes, suffix, folder = get_args()
+    alg, size, episodes, suffix, folder = get_args()
+    decay: float = (MIN_EPSILON / EPSILON) ** (1 / episodes)
 
-    env = RMDoorKey(size=size, max_steps=max_steps)
+    env = DoorKey(size=size, max_steps=MAX_STEPS)
 
     match alg:
         case "q":
-            agent = QLearner(
-                n_actions=env.action_space.n,
+            agent = QAgent(
+                n_actions=env.n_actions,
                 alpha=ALPHA,
                 gamma=GAMMA,
                 epsilon=EPSILON,
-                epsilon_decay=EPSILON_DECAY,
+                epsilon_decay=decay,
                 min_epsilon=MIN_EPSILON,
             )
             data = run(agent, env, episodes=episodes)
         case "bl":
             rm = RM.from_file("src/envs/doorkey.txt")
-            agent = BLLearner(
-                n_actions=env.action_space.n,
+            agent = QAgent(
+                n_actions=env.n_actions,
                 alpha=ALPHA,
                 gamma=GAMMA,
                 epsilon=EPSILON,
-                epsilon_decay=EPSILON_DECAY,
+                epsilon_decay=decay,
                 min_epsilon=MIN_EPSILON,
             )
             data = run(agent, env, rm, episodes)
         case "crm":
             rm = RM.from_file("src/envs/doorkey.txt")
-            agent = CRMLearner(
-                n_actions=env.action_space.n,
+            agent = CRMQAgent(
+                n_actions=env.n_actions,
                 alpha=ALPHA,
                 gamma=GAMMA,
                 epsilon=EPSILON,
-                epsilon_decay=EPSILON_DECAY,
+                epsilon_decay=decay,
                 min_epsilon=MIN_EPSILON,
             )
             data = run(agent, env, rm, episodes)
         case "bl2":
             rm = RM.from_file("src/envs/doorkey2.txt")
-            agent = BLLearner(
-                n_actions=env.action_space.n,
+            agent = QAgent(
+                n_actions=env.n_actions,
                 alpha=ALPHA,
                 gamma=GAMMA,
                 epsilon=EPSILON,
-                epsilon_decay=EPSILON_DECAY,
+                epsilon_decay=decay,
                 min_epsilon=MIN_EPSILON,
             )
             data = run(agent, env, rm, episodes)
         case "crm2":
             rm = RM.from_file("src/envs/doorkey2.txt")
-            agent = CRMLearner(
-                n_actions=env.action_space.n,
+            agent = CRMQAgent(
+                n_actions=env.n_actions,
                 alpha=ALPHA,
                 gamma=GAMMA,
                 epsilon=EPSILON,
-                epsilon_decay=EPSILON_DECAY,
+                epsilon_decay=decay,
                 min_epsilon=MIN_EPSILON,
             )
             data = run(agent, env, rm, episodes)

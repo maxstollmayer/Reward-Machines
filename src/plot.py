@@ -6,7 +6,7 @@ import numpy as np
 import scienceplots
 from matplotlib import pyplot as plt
 
-scienceplots.__path__
+scienceplots.__path__  # so import is not removed by formatter
 plt.style.use(["science", "bright"])
 plt.rcParams.update(
     {

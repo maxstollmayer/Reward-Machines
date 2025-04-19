@@ -2,8 +2,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 
-State = tuple[int, int]
-Experience = dict[State, tuple[State, float, bool]]
+from utils import Experiences, Observation, Props, Reward, RMState, State
 
 
 def extract_variables(formula: str) -> set[str]:
@@ -17,7 +16,7 @@ def parse_formula(formula: str) -> str:
     return formula
 
 
-def evaluate_formula(formula: str, props: dict[str, bool]) -> bool:
+def evaluate_formula(formula: str, props: Props) -> bool:
     try:
         # WARN: can execute arbitrary code
         # TODO: make custom evaluator
@@ -30,13 +29,13 @@ def evaluate_formula(formula: str, props: dict[str, bool]) -> bool:
 class RM:
     # https://github.com/RodrigoToroIcarte/reward_machines/blob/master/reward_machines/reward_machines/reward_machine.py
 
-    def __init__(self, transitions: list[tuple[int, int, str, float]]) -> None:
+    def __init__(self, transitions: list[tuple[RMState, RMState, str, Reward]]) -> None:
         assert len(transitions) != 0, "Expected non-empty transition list."
 
-        states_set: set[int] = set()
-        terminals_set: set[int] = set()
-        self.delta_u: dict[int, dict[int, str]] = defaultdict(dict)
-        self.delta_r: dict[int, dict[int, float]] = defaultdict(dict)
+        states_set: set[RMState] = set()
+        terminals_set: set[RMState] = set()
+        self.delta_u: dict[RMState, dict[RMState, str]] = defaultdict(dict)
+        self.delta_r: dict[RMState, dict[RMState, Reward]] = defaultdict(dict)
 
         for u1, u2, formula, reward in transitions:
             states_set.add(u1)
@@ -46,9 +45,9 @@ class RM:
 
         terminals_set.difference_update(states_set)
 
-        self.states: list[int] = sorted(states_set)
-        self.initial_state: int = self.states[0]
-        self.terminal_states: list[int] = sorted(terminals_set)
+        self.states: list[RMState] = sorted(states_set)
+        self.initial_state: RMState = self.states[0]
+        self.terminal_states: list[RMState] = sorted(terminals_set)
 
     @staticmethod
     def from_file(filename: str) -> "RM":
@@ -57,14 +56,16 @@ class RM:
 
         # WARN: can execute arbitrary code
         # TODO: create custom DSL and parser
-        transitions: list[tuple[int, int, str, float]] = [eval(line) for line in lines]
+        transitions: list[tuple[RMState, RMState, str, Reward]] = [
+            eval(line) for line in lines
+        ]
 
         return RM(transitions)
 
-    def reset(self) -> int:
+    def reset(self) -> RMState:
         return self.initial_state
 
-    def get_next_state(self, u1: int, props: dict[str, bool]) -> int:
+    def get_next_state(self, u1: RMState, props: Props) -> RMState:
         for u2 in self.delta_u[u1]:
             if evaluate_formula(self.delta_u[u1][u2], props):
                 return u2
@@ -72,26 +73,30 @@ class RM:
             f"No transition found for state {u1} and propositions {props}."
         )
 
-    def get_reward(self, u1: int, u2: int) -> float:
+    def get_reward(self, u1: RMState, u2: RMState) -> Reward:
         return self.delta_r[u1][u2]
 
-    def get_experience(self, s1: int, s2: int, props: dict[str, bool]) -> Experience:
-        experience: Experience = dict()
+    def get_experiences(
+        self, s1: Observation, s2: Observation, props: Props
+    ) -> Experiences:
+        experiences: Experiences = []
         for u1 in self.states:
             u2 = self.get_next_state(u1, props)
             r = self.get_reward(u1, u2)
             terminal = u2 in self.terminal_states
-            experience[(s1, u1)] = ((s2, u2), r, terminal)
-        return experience
+            experiences.append(((s1, u1), (s2, u2), r, terminal))
+        return experiences
 
     def step(
         self,
         state: State,
-        next_env_state: int,
-        props: dict[str, bool],
-    ) -> tuple[State, float, bool, Experience]:
+        obs: Observation,
+        props: Props,
+    ) -> tuple[State, Reward, bool, Experiences]:
         s1, u1 = state
         assert u1 not in self.terminal_states, "Expected non-terminal state."
-        experience = self.get_experience(s1, next_env_state, props)
-        next_state, reward, terminal = experience[state]
-        return next_state, reward, terminal, experience
+        u2 = self.get_next_state(u1, props)
+        reward = self.get_reward(u1, u2)
+        terminal = u2 in self.terminal_states
+        experiences = self.get_experiences(s1, obs, props)
+        return (obs, u2), reward, terminal, experiences
